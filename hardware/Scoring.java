@@ -20,9 +20,9 @@ public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
     private final Drivetrain drivetrain;
-    private final Intake intake;
-    private final Transfer transfer;
-    private final Shooter shooter;
+    //private final Intake intake;
+    //private final Transfer transfer;
+    //private final Shooter shooter;
     private final Limelight limelight;
 
     // ------------------ MODES / STATE ------------------
@@ -74,9 +74,9 @@ public class Scoring extends Mechanism {
         this.opMode = opMode;
 
         drivetrain = new Drivetrain(opMode);
-        intake = new Intake(opMode);
-        transfer = new Transfer(opMode);
-        shooter = new Shooter(opMode);
+       // intake = new Intake(opMode);
+        //transfer = new Transfer(opMode);
+        //shooter = new Shooter(opMode);
         limelight = new Limelight(opMode);
     }
 
@@ -84,9 +84,9 @@ public class Scoring extends Mechanism {
     @Override
     public void init(HardwareMap hwMap) {
         drivetrain.init(hwMap);
-        intake.init(hwMap);
-        transfer.init(hwMap);
-        shooter.init(hwMap);
+        //intake.init(hwMap);
+        //transfer.init(hwMap);
+        //shooter.init(hwMap);
         limelight.init(hwMap);
     }
 
@@ -138,8 +138,8 @@ public class Scoring extends Mechanism {
         mode = Mode.DRIVER;
         shootStage = ShootStage.NONE;
         drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-        shooter.passivePower();
-        transfer.downPos();
+        //shooter.passivePower();
+        //transfer.downPos();
     }
 
     // ------------------ MAIN LOOP ------------------
@@ -199,11 +199,11 @@ public class Scoring extends Mechanism {
         // INTAKE: A
         // OUTTAKE: left bumper
         if (gamepad.a) {
-            intake.intake();
+           // intake.intake();
         } else if (gamepad.left_bumper) {
-            intake.outtake();
+            //intake.outtake();
         } else {
-            intake.stop();
+           // intake.stop();
         }
     }
 
@@ -257,8 +257,8 @@ public class Scoring extends Mechanism {
         shootStage = ShootStage.SPINUP;
         stageStartTime = opMode.getRuntime();
 
-        shooter.shoot();      // spin shooter up
-        transfer.downPos();   // make sure transfer is down while spinning up
+        //shooter.shoot();      // spin shooter up
+        //transfer.downPos();   // make sure transfer is down while spinning up
     }
 
     private void autoShootStep() {
@@ -269,7 +269,7 @@ public class Scoring extends Mechanism {
             case SPINUP:
                 if (now - stageStartTime >= SHOOT_SPINUP_TIME) {
                     // Start feeding balls
-                    transfer.upPos();
+                    //transfer.upPos();
                     shootStage = ShootStage.FEEDING;
                     stageStartTime = now;
                 }
@@ -278,8 +278,8 @@ public class Scoring extends Mechanism {
             case FEEDING:
                 if (now - stageStartTime >= SHOOT_FEED_TIME) {
                     // Done shooting, reset
-                    transfer.downPos();
-                    shooter.passivePower();
+                   // transfer.downPos();
+                   //=[ shooter.passivePower();
                     shootStage = ShootStage.NONE;
                     mode = Mode.DRIVER;
                 }
