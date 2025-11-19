@@ -19,11 +19,11 @@ import org.firstinspires.ftc.teamcode.hardware.drive.Drivetrain;
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private final Drivetrain drivetrain;
+    private Drivetrain drivetrain = new Drivetrain(opMode);
     //private final Intake intake;
     //private final Transfer transfer;
     //private final Shooter shooter;
-    private final Limelight limelight;
+    private Limelight limelight = new Limelight(opMode);
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
@@ -183,6 +183,10 @@ public class Scoring extends Mechanism {
             requestAutoAlignAndShoot();
         } else if (!shootPressed) {
             shootButtonLatched = false;
+        }
+        boolean autoAlignPressed = gamepad.dpad_left;
+        if (gamepad.dpad_left){
+            requestAutoAlignAndShoot();
         }
 
         // ABORT button: dpad_down (Controls.ABORT)
