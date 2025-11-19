@@ -1,29 +1,40 @@
 package org.firstinspires.ftc.teamcode.hardware;
+
 import static org.firstinspires.ftc.teamcode.opmode.auton.LimelightConstants.*;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.*;
-
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.stuyfission.fissionlib.util.Mechanism;
-import com.qualcomm.*;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Limelight extends Mechanism {
-    private Limelight3A limelight;
-    private ArrayList<Location> locations = new ArrayList<>();
+    private static final double METERS_TO_INCHES = 39.3701;
+    private static final long MAX_GLOBAL_STALENESS_MS = 150;
 
-    public class Location {
+    private Limelight3A limelight;
+    private final ArrayList<Location> locations = new ArrayList<>();
+
+    // Last known global field pose from MegaTag2, in RoadRunner units (inches)
+    private Pose2d globalPose = null;
+    private long globalPoseStalenessMs = Long.MAX_VALUE;
+
+    public static class Location {
         public int tagID;
-        public double x;     // left/right displacement (meters)
-        public double y;     // forward/backward displacement (meters)
-        public double yaw;   // yaw angle (degrees)
+        public double x;     // left/right displacement (meters, robot space)
+        public double y;     // forward/back displacement (meters, robot space)
+        public double yaw;   // yaw angle (degrees, robot space)
         public double score;
 
         public double distScore;
@@ -38,6 +49,18 @@ public class Limelight extends Mechanism {
         }
     }
 
+    public static class DriveCommands {
+        public double forward;  // meters * gain (robot forward)
+        public double strafe;   // meters * gain (robot left/right)
+        public double turn;     // degrees * gain (CCW positive)
+
+        public DriveCommands(double forward, double strafe, double turn) {
+            this.forward = forward;
+            this.strafe = strafe;
+            this.turn = turn;
+        }
+    }
+
     public Limelight(LinearOpMode opMode) {
         this.opMode = opMode;
     }
@@ -46,20 +69,70 @@ public class Limelight extends Mechanism {
     public void init(HardwareMap hwMap) {
         limelight = hwMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
-        limelight.pipelineSwitch(PIPELINE);  // ensure pipeline configured for AprilTag
+        limelight.pipelineSwitch(PIPELINE);  // AprilTag pipeline
         limelight.start();
     }
 
+    /**
+     * Backwards-compatible update with no orientation info.
+     * Prefer update(robotYawDeg) where possible.
+     */
     public void update() {
+        update(Double.NaN);
+    }
+
+    /**
+     * Main update: feed robot yaw (deg) into MegaTag2, grab latest result,
+     * update both per-tag relative locations and the global MegaTag2 pose.
+     */
+    public void update(double robotYawDeg) {
+        if (limelight == null) return;
+
+        // Feed IMU/heading into MegaTag2 if provided
+        if (!Double.isNaN(robotYawDeg)) {
+            limelight.updateRobotOrientation(robotYawDeg);
+        }
+
         LLResult result = limelight.getLatestResult();
+        locations.clear();
+
         if (result == null || !result.isValid()) {
-            locations.clear();
+            globalPose = null;
+            globalPoseStalenessMs = Long.MAX_VALUE;
             return;
         }
 
+        // ---------- GLOBAL FIELD POSE (MegaTag2) ----------
+        Pose3D fieldPose = result.getBotpose_MT2();
+        if (fieldPose != null) {
+            Position fieldPos = fieldPose.getPosition();
+            YawPitchRollAngles fieldAngles = fieldPose.getOrientation();
+
+            if (fieldPos != null && fieldAngles != null) {
+                double xMeters = fieldPos.x;
+                double yMeters = fieldPos.y;
+                double yawDeg = fieldAngles.getYaw(AngleUnit.DEGREES);
+
+                double xInches = xMeters * METERS_TO_INCHES;
+                double yInches = yMeters * METERS_TO_INCHES;
+                double headingRad = Math.toRadians(yawDeg);
+
+                globalPose = new Pose2d(xInches, yInches, headingRad);
+                globalPoseStalenessMs = result.getStaleness();
+            } else {
+                globalPose = null;
+                globalPoseStalenessMs = Long.MAX_VALUE;
+            }
+        } else {
+            globalPose = null;
+            globalPoseStalenessMs = Long.MAX_VALUE;
+        }
+
+        // ---------- PER-TAG ROBOT-SPACE LOCATIONS ----------
         List<LLResultTypes.FiducialResult> tags = result.getFiducialResults();
-        locations.clear();
-        if (tags == null || tags.isEmpty()) return;
+        if (tags == null || tags.isEmpty()) {
+            return;
+        }
 
         for (LLResultTypes.FiducialResult tag : tags) {
             if (tag == null) continue;
@@ -67,24 +140,26 @@ public class Limelight extends Mechanism {
             int id = tag.getFiducialId();
 
             Pose3D pose = tag.getTargetPoseRobotSpace();
+            if (pose == null) continue;
+
             Position data = pose.getPosition();
             YawPitchRollAngles angles = pose.getOrientation();
-            if (pose == null || data == null) continue;
+            if (data == null || angles == null) continue;
 
-            // Access translation and rotation directly from the array
-            double x_m = data.x;   // Left/right
-            double y_m = data.y;   // Forward/back
-            double z_m = data.z;   // Up/down
-            double yawDeg = angles.getYaw(); // Yaw angle
+            double x_m = data.x;  // left/right (robot space)
+            double y_m = data.y;  // forward/back (robot space)
+            // double z_m = data.z; // up/down, unused
+            double yawDeg = angles.getYaw(AngleUnit.DEGREES);
 
             Location loc = new Location(id, x_m, y_m, yawDeg);
             locations.add(loc);
         }
     }
 
-
-
-
+    /**
+     * Get best AprilTag measurement in robot space using your weighted score.
+     * Returns a dummy (-1,0,0,0) if none are currently visible.
+     */
     public Location getBest() {
         if (locations.isEmpty()) {
             return new Location(-1, 0.0, 0.0, 0.0);
@@ -101,7 +176,14 @@ public class Limelight extends Mechanism {
         return locations.get(0);
     }
 
-    public DriveCommands computeDriveCommands(double desiredFwdMeters, double forwardGain, double strafeGain, double turnGain) {
+    /**
+     * Compute simple P-controlled drive commands from the best tag.
+     * Only call this if getBest().tagID >= 0.
+     */
+    public DriveCommands computeDriveCommands(double desiredFwdMeters,
+                                              double forwardGain,
+                                              double strafeGain,
+                                              double turnGain) {
         Location best = getBest();
         double forward = (best.y - desiredFwdMeters) * forwardGain;
         double strafe  = best.x * strafeGain;
@@ -109,28 +191,35 @@ public class Limelight extends Mechanism {
         return new DriveCommands(forward, strafe, turn);
     }
 
-    public static class DriveCommands {
-        public double forward;  // meters * gain
-        public double strafe;   // meters * gain (positive = right)
-        public double turn;     // degrees * gain (positive = clockwise)
-
-        public DriveCommands(double forward, double strafe, double turn) {
-            this.forward = forward;
-            this.strafe = strafe;
-            this.turn = turn;
-        }
+    /**
+     * Latest global field pose from MegaTag2, in RoadRunner units (inches).
+     * Returns null if no recent pose is available.
+     */
+    public Pose2d getGlobalPose() {
+        if (globalPose == null) return null;
+        if (globalPoseStalenessMs > MAX_GLOBAL_STALENESS_MS) return null;
+        return globalPose;
     }
 
     @Override
     public void telemetry(Telemetry telemetry) {
         Location best = getBest();
         telemetry.addData("Best Tag ID", best.tagID);
-        telemetry.addData("Left/Right x (m)", String.format("%.3f", best.x));
-        telemetry.addData("Forward y (m)", String.format("%.3f", best.y));
-        telemetry.addData("Yaw (deg)", String.format("%.2f", best.yaw));
-        telemetry.addData("Score", String.format("%.3f", best.score));
+        telemetry.addData("Left/Right x (m)", "%.3f", best.x);
+        telemetry.addData("Forward y (m)", "%.3f", best.y);
+        telemetry.addData("Yaw (deg)", "%.2f", best.yaw);
+        telemetry.addData("Score", "%.3f", best.score);
         telemetry.addData("Num Tags", locations.size());
-        telemetry.update();
+
+        if (globalPose != null) {
+            telemetry.addData("Global X (in)", "%.1f", globalPose.getX());
+            telemetry.addData("Global Y (in)", "%.1f", globalPose.getY());
+            telemetry.addData("Global H (deg)", "%.1f", Math.toDegrees(globalPose.getHeading()));
+            telemetry.addData("Global Stale (ms)", globalPoseStalenessMs);
+        } else {
+            telemetry.addData("Global Pose", "none");
+        }
+        // Do NOT call telemetry.update() here; let the main OpMode handle it.
     }
 
     public void stop() {

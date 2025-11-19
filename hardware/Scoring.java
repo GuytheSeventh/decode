@@ -6,28 +6,30 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.stuyfission.fissionlib.util.Mechanism;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.drive.Drivetrain;
 
 /**
  * High-level scoring controller:
  * - Manual drive + intake/outtake
- * - One-button: auto-align to AprilTag, adjust velocity, spin up shooter, feed and shoot
- * - Helper method to start the same sequence from code (e.g., auton)
+ * - One-button: go to far shooting zone tip, then auto-align to AprilTag
+ * - Optional shooting sequence (currently commented out)
  */
 @Config
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private Drivetrain drivetrain = new Drivetrain(opMode);
+    private Drivetrain drivetrain;
+    private Limelight limelight;
     //private final Intake intake;
     //private final Transfer transfer;
     //private final Shooter shooter;
-    private Limelight limelight = new Limelight(opMode);
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
         DRIVER,        // normal tele-op driving
+        GO_TO_FAR_TIP, // drive (global) to far shooting zone tip
         AUTO_ALIGN,    // using Limelight to center on tag
         SHOOTING       // shooter spinup + feeding
     }
@@ -45,18 +47,19 @@ public class Scoring extends Mechanism {
     private double stageStartTime = 0.0;
 
     // ------------------ TUNABLE CONSTANTS (Dashboard) ------------------
-    // Desired distance from tag when aligned (meters)
+
+    // Desired distance from tag when aligned (meters, robot-space Limelight measurement)
     public static double DESIRED_FWD_METERS = 1.5;
 
-    // Gains for auto-align movement
+    // Gains for local auto-align movement (robot space)
     public static double FORWARD_GAIN = 1.0;
     public static double STRAFE_GAIN = 1.0;
     public static double TURN_GAIN = 0.03;
 
-    // Max speed while auto-aligning (0..1)
+    // Max speed while auto-aligning / pathing (0..1 drive power)
     public static double MAX_AUTO_SPEED = 0.6;
 
-    // Alignment tolerances
+    // Alignment tolerances (local/tag-relative)
     public static double X_TOLERANCE = 0.03;          // side error (m)
     public static double Y_TOLERANCE = 0.05;          // forward error (m)
     public static double YAW_TOLERANCE_DEG = 2.0;     // angle error (deg)
@@ -64,6 +67,20 @@ public class Scoring extends Mechanism {
     // Shooter timing
     public static double SHOOT_SPINUP_TIME = 0.5;     // seconds to spin up shooter
     public static double SHOOT_FEED_TIME = 1.0;       // seconds to feed balls
+
+    // -------- Far shooting zone target pose (RoadRunner units: inches, radians) --------
+    // Fill these from real field measurements (pose of the tip of the far shooting zone)
+    public static double FAR_TIP_X_INCHES = 0.0;       // TODO: measure & set
+    public static double FAR_TIP_Y_INCHES = 0.0;       // TODO: measure & set
+    public static double FAR_TIP_HEADING_DEG = 0.0;    // TODO: measure & set
+
+    // Tolerances for "we've reached the far tip pose"
+    public static double FAR_POS_TOL_INCHES = 2.0;     // how close in XY before we switch to AUTO_ALIGN
+    public static double FAR_HEADING_TOL_DEG = 3.0;    // heading tolerance at far tip
+
+    // P gains for global approach (toward FAR_TIP pose)
+    public static double FAR_KP_TRANSLATION = 0.03;    // drive power per inch of error
+    public static double FAR_KP_ROTATION = 0.04;       // drive power per rad of error
 
     // ------------------ BUTTON EDGE FLAGS ------------------
     private boolean shootButtonLatched = false;
@@ -74,20 +91,20 @@ public class Scoring extends Mechanism {
         this.opMode = opMode;
 
         drivetrain = new Drivetrain(opMode);
-       // intake = new Intake(opMode);
+        limelight = new Limelight(opMode);
+        //intake = new Intake(opMode);
         //transfer = new Transfer(opMode);
         //shooter = new Shooter(opMode);
-        limelight = new Limelight(opMode);
     }
 
     // ------------------ INIT ------------------
     @Override
     public void init(HardwareMap hwMap) {
         drivetrain.init(hwMap);
+        limelight.init(hwMap);
         //intake.init(hwMap);
         //transfer.init(hwMap);
         //shooter.init(hwMap);
-        limelight.init(hwMap);
     }
 
     // ------------------ TELEMETRY ------------------
@@ -104,28 +121,26 @@ public class Scoring extends Mechanism {
         telemetry.addData("LL yaw (deg)", loc.yaw);
 
         Pose2d pose = drivetrain.getPoseEstimate();
-        telemetry.addData("Pose X", pose.getX());
-        telemetry.addData("Pose Y", pose.getY());
-        telemetry.addData("Pose H (rad)", pose.getHeading());
+        telemetry.addData("RR Pose X (in)", pose.getX());
+        telemetry.addData("RR Pose Y (in)", pose.getY());
+        telemetry.addData("RR Pose H (deg)", Math.toDegrees(pose.getHeading()));
     }
 
     // ------------------ PUBLIC HELPERS ------------------
 
     /**
-     * Request a full "center on tag, aim, and shoot" sequence.
-     * Can be called from TeleOp (button) or auton code.
+     * Start full sequence: drive from wherever you are to the far shooting zone tip,
+     * then drop into tag-based AUTO_ALIGN (and eventually SHOOTING if enabled).
      */
     public void requestAutoAlignAndShoot() {
         if (mode == Mode.DRIVER) {
-            mode = Mode.AUTO_ALIGN;
+            mode = Mode.GO_TO_FAR_TIP;
             shootStage = ShootStage.NONE;
         }
     }
 
     /**
-     * Same idea as above; conceptually "go to center of shooting zone,
-     * aim, and fire". The "center" is defined as DESIRED_FWD_METERS
-     * away from the tag with small x/y/yaw error.
+     * Same idea; conceptually "go to center of shooting zone, aim, and fire".
      */
     public void requestCenterShot() {
         requestAutoAlignAndShoot();
@@ -142,14 +157,34 @@ public class Scoring extends Mechanism {
         //transfer.downPos();
     }
 
+    private Pose2d getFarTipPose() {
+        return new Pose2d(
+                FAR_TIP_X_INCHES,
+                FAR_TIP_Y_INCHES,
+                Math.toRadians(FAR_TIP_HEADING_DEG)
+        );
+    }
+
     // ------------------ MAIN LOOP ------------------
     @Override
     public void loop(Gamepad gamepad) {
         // Update odometry & trajectory follower
         drivetrain.update();
 
-        // Update Limelight measurements
-        limelight.update();
+        // Use RR heading (radians) as orientation prior for MegaTag2
+        Pose2d rrPose = drivetrain.getPoseEstimate();
+        double headingDeg = Math.toDegrees(rrPose.getHeading());
+
+        // Update Limelight; this fills tag-relative data and global botpose_MT2
+        limelight.update(headingDeg);
+
+        // OPTIONAL: if you want to fuse vision pose into RR, uncomment:
+        /*
+        Pose2d visionPose = limelight.getGlobalPose();
+        if (visionPose != null) {
+            drivetrain.setPoseEstimate(visionPose);
+        }
+        */
 
         // Always handle intake / outtake
         handleIntake(gamepad);
@@ -161,6 +196,10 @@ public class Scoring extends Mechanism {
         switch (mode) {
             case DRIVER:
                 manualDrive(gamepad);
+                break;
+
+            case GO_TO_FAR_TIP:
+                goToFarTipStep();
                 break;
 
             case AUTO_ALIGN:
@@ -176,17 +215,13 @@ public class Scoring extends Mechanism {
     // ------------------ INPUT HANDLING ------------------
 
     private void handleButtons(Gamepad gamepad) {
-        // SHOOT button: right stick button (see Controls.SHOOT)
-        boolean shootPressed = gamepad.right_stick_button;
+        // SHOOT / GO-TO-FAR-ZONE button: right trigger (see Controls.SHOOT)
+        boolean shootPressed = gamepad.right_trigger > 0.0;
         if (shootPressed && !shootButtonLatched) {
             shootButtonLatched = true;
             requestAutoAlignAndShoot();
         } else if (!shootPressed) {
             shootButtonLatched = false;
-        }
-        boolean autoAlignPressed = gamepad.dpad_left;
-        if (gamepad.dpad_left){
-            requestAutoAlignAndShoot();
         }
 
         // ABORT button: dpad_down (Controls.ABORT)
@@ -203,11 +238,11 @@ public class Scoring extends Mechanism {
         // INTAKE: A
         // OUTTAKE: left bumper
         if (gamepad.a) {
-           // intake.intake();
+            //intake.intake();
         } else if (gamepad.left_bumper) {
             //intake.outtake();
         } else {
-           // intake.stop();
+            //intake.stop();
         }
     }
 
@@ -221,12 +256,60 @@ public class Scoring extends Mechanism {
         ));
     }
 
+    /**
+     * Global approach to reach the far shooting zone tip using RoadRunner pose.
+     * Once we are close enough to FAR_TIP pose, we switch to AUTO_ALIGN for fine tag-based alignment.
+     */
+    private void goToFarTipStep() {
+        Pose2d pose = drivetrain.getPoseEstimate();
+        Pose2d target = getFarTipPose();
+
+        double dx = target.getX() - pose.getX();
+        double dy = target.getY() - pose.getY();
+        double distance = Math.hypot(dx, dy);
+
+        double targetHeading = target.getHeading();
+        double headingError = angleWrap(targetHeading - pose.getHeading());
+
+        boolean atPosition = distance < FAR_POS_TOL_INCHES;
+        boolean atHeading = Math.abs(Math.toDegrees(headingError)) < FAR_HEADING_TOL_DEG;
+
+        if (atPosition && atHeading) {
+            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
+            // Hand off to Limelight-based fine alignment
+            mode = Mode.AUTO_ALIGN;
+            return;
+        }
+
+        // Convert field-space error (dx, dy) into robot-centric (forward, strafe)
+        double heading = pose.getHeading();
+        double cosH = Math.cos(-heading);
+        double sinH = Math.sin(-heading);
+
+        double robotXError = dx * cosH - dy * sinH; // forward
+        double robotYError = dx * sinH + dy * cosH; // strafe
+
+        double forwardCmd = FAR_KP_TRANSLATION * robotXError;
+        double strafeCmd  = FAR_KP_TRANSLATION * robotYError;
+        double turnCmd    = FAR_KP_ROTATION * headingError;
+
+        forwardCmd = clamp(forwardCmd, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        strafeCmd  = clamp(strafeCmd,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        turnCmd    = clamp(turnCmd,    -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+
+        drivetrain.setDrivePower(new Pose2d(forwardCmd, strafeCmd, turnCmd));
+    }
+
+    /**
+     * Local tag-relative alignment using Limelight helper.
+     * Runs after we’re already at the far tip pose.
+     */
     private void autoAlignStep() {
         Limelight.Location loc = limelight.getBest();
 
-        // If no tag seen, hold still and wait
+        // If no tag seen, slowly spin in place to search
         if (loc.tagID < 0) {
-            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
+            drivetrain.setDrivePower(new Pose2d(0, 0, -0.06));
             return;
         }
 
@@ -250,9 +333,11 @@ public class Scoring extends Mechanism {
                         Math.abs(loc.yaw)    < YAW_TOLERANCE_DEG;
 
         if (aligned) {
-            // Stop and begin shooting sequence
+            // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
             beginShooting();
+            // If you don't want auto-shoot at all yet, comment the above line and just do:
+            // mode = Mode.DRIVER;
         }
     }
 
@@ -282,8 +367,8 @@ public class Scoring extends Mechanism {
             case FEEDING:
                 if (now - stageStartTime >= SHOOT_FEED_TIME) {
                     // Done shooting, reset
-                   // transfer.downPos();
-                   //=[ shooter.passivePower();
+                    //transfer.downPos();
+                    //shooter.passivePower();
                     shootStage = ShootStage.NONE;
                     mode = Mode.DRIVER;
                 }
@@ -300,5 +385,12 @@ public class Scoring extends Mechanism {
     // ------------------ UTIL ------------------
     private double clamp(double v, double min, double max) {
         return Math.max(min, Math.min(max, v));
+    }
+
+    // Wrap angle to [-pi, pi]
+    private double angleWrap(double angle) {
+        while (angle > Math.PI) angle -= 2.0 * Math.PI;
+        while (angle < -Math.PI) angle += 2.0 * Math.PI;
+        return angle;
     }
 }
