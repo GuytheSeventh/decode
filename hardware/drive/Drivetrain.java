@@ -31,6 +31,10 @@ public class Drivetrain extends Mechanism {
         return rrDrive.getPoseEstimate();
     }
 
+    public void setPoseEstimate(Pose2d pose){
+        rrDrive.setPoseEstimate(pose);
+    }
+
     /** For backwards compatibility if you used currPos() before. */
     public Pose2d currPos() {
         return getPoseEstimate();

@@ -10,19 +10,23 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @TeleOp(name = "BlueMain", group = "_amain")
 public class BlueMain extends LinearOpMode {
 
-    private Robot robot = new Robot(this);
+    private Robot robot;
 
     @Override
     public void runOpMode() throws InterruptedException {
+        robot = new Robot(this);
         robot.init(hardwareMap);
 
         telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
+        while (!isStopRequested() && !opModeIsActive()) {
+            robot.telemetry(telemetry);
+        }
+
         waitForStart();
 
-        while (opModeIsActive() && !isStopRequested()) {
-            robot.loop(gamepad1);
-
+        while (opModeIsActive()) {
+            robot.loop(gamepad1, gamepad2);
             robot.telemetry(telemetry);
         }
     }

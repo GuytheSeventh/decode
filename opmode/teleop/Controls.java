@@ -2,12 +2,13 @@ package org.firstinspires.ftc.teamcode.opmode.teleop;
 import com.stuyfission.fissionlib.input.GamepadStatic.Input;
 
 public class Controls {
-    public static final Input SHOOT = Input.RIGHT_STICK_BUTTON;
+    public static final Input SHOOT = Input.RIGHT_TRIGGER;
     public static final Input ABORT = Input.DPAD_DOWN;
-    public static final Input GOTOP = Input.DPAD_UP;
-    public static final Input GRAB = Input.RIGHT_BUMPER;
+    public static final Input GOTOP = Input.NONE;
+    public static final Input GOBOTTOM = Input.NONE;
+    public static final Input ALIGN = Input.RIGHT_BUMPER;
     public static final Input OUTTAKE = Input.LEFT_BUMPER;
-    public static final Input INTAKE_SHORT = Input.X; // SQUARE
+    public static final Input INTAKE_SHORT = Input.NONE; // SQUARE
     public static final Input INTAKE = Input.A; // CROSS
     public static final Input PIVOT_FRONT = Input.A; // CROSS
     public static final Input PIVOT_WALL = Input.X; // square

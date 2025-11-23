@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -5,10 +6,12 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.stuyfission.fissionlib.input.GamepadStatic;
 import com.stuyfission.fissionlib.util.Mechanism;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.drive.Drivetrain;
+import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 
 /**
  * High-level scoring controller:
@@ -58,6 +61,7 @@ public class Scoring extends Mechanism {
 
     // Max speed while auto-aligning / pathing (0..1 drive power)
     public static double MAX_AUTO_SPEED = 0.6;
+    public static double MAX_AUTO_TURN_SPEED = .5;
 
     // Alignment tolerances (local/tag-relative)
     public static double X_TOLERANCE = 0.03;          // side error (m)
@@ -134,7 +138,7 @@ public class Scoring extends Mechanism {
      */
     public void requestAutoAlignAndShoot() {
         if (mode == Mode.DRIVER) {
-            mode = Mode.GO_TO_FAR_TIP;
+            mode = Mode.AUTO_ALIGN;
             shootStage = ShootStage.NONE;
         }
     }
@@ -179,15 +183,16 @@ public class Scoring extends Mechanism {
         limelight.update(headingDeg);
 
         // OPTIONAL: if you want to fuse vision pose into RR, uncomment:
-        /*
+
         Pose2d visionPose = limelight.getGlobalPose();
         if (visionPose != null) {
             drivetrain.setPoseEstimate(visionPose);
         }
-        */
+
 
         // Always handle intake / outtake
         handleIntake(gamepad);
+
 
         // Handle scoring button and abort button
         handleButtons(gamepad);
@@ -198,9 +203,9 @@ public class Scoring extends Mechanism {
                 manualDrive(gamepad);
                 break;
 
-            case GO_TO_FAR_TIP:
-                goToFarTipStep();
-                break;
+           // case GO_TO_FAR_TIP:
+              //  goToFarTipStep();
+               // break;
 
             case AUTO_ALIGN:
                 autoAlignStep();
@@ -215,22 +220,25 @@ public class Scoring extends Mechanism {
     // ------------------ INPUT HANDLING ------------------
 
     private void handleButtons(Gamepad gamepad) {
-        // SHOOT / GO-TO-FAR-ZONE button: right trigger (see Controls.SHOOT)
-        boolean shootPressed = gamepad.right_trigger > 0.0;
-        if (shootPressed && !shootButtonLatched) {
+        boolean align = gamepad.right_bumper;
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN) && !shootButtonLatched) {
             shootButtonLatched = true;
             requestAutoAlignAndShoot();
-        } else if (!shootPressed) {
+        } else if (!align) {
             shootButtonLatched = false;
         }
 
-        // ABORT button: dpad_down (Controls.ABORT)
         boolean abortPressed = gamepad.dpad_down;
-        if (abortPressed && !abortButtonLatched) {
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT) && !abortButtonLatched) {
             abortButtonLatched = true;
             abortAuto();
         } else if (!abortPressed) {
             abortButtonLatched = false;
+        }
+
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
+
+            beginShooting();
         }
     }
 
@@ -239,10 +247,11 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (gamepad.a) {
             //intake.intake();
+            System.out.println("intake");
         } else if (gamepad.left_bumper) {
-            //intake.outtake();
+            System.out.println("outtake");
         } else {
-            //intake.stop();
+            System.out.println("stop");
         }
     }
 
@@ -309,21 +318,17 @@ public class Scoring extends Mechanism {
 
         // If no tag seen, slowly spin in place to search
         if (loc.tagID < 0) {
-            drivetrain.setDrivePower(new Pose2d(0, 0, -0.06));
+            drivetrain.setDrivePower(new Pose2d(0, 0, +MAX_AUTO_TURN_SPEED));
             return;
+        }
+        else{
+            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
         }
 
         // Compute drive commands from Limelight helper (distance-aware gains)
         Limelight.DriveCommands cmds = limelight.computeDriveCommands(
                 DESIRED_FWD_METERS, FORWARD_GAIN, STRAFE_GAIN, TURN_GAIN
         );
-
-        double forward = clamp(cmds.forward, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-        double strafe  = clamp(cmds.strafe,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-        double turn    = clamp(cmds.turn,    -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-
-        drivetrain.setDrivePower(new Pose2d(forward, strafe, turn));
-
         // Check alignment tolerances
         double fwdError = loc.y - DESIRED_FWD_METERS;
 
@@ -335,9 +340,9 @@ public class Scoring extends Mechanism {
         if (aligned) {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-            beginShooting();
+            //beginShooting();
             // If you don't want auto-shoot at all yet, comment the above line and just do:
-            // mode = Mode.DRIVER;
+            mode = Mode.DRIVER;
         }
     }
 
