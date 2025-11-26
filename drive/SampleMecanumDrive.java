@@ -67,7 +67,7 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
-    public static double OMEGA_WEIGHT = 1;
+    public static double OMEGA_WEIGHT = 1.03;
 
     private TrajectorySequenceRunner trajectorySequenceRunner;
 
@@ -142,7 +142,8 @@ public class SampleMecanumDrive extends MecanumDrive {
         // TODO: reverse any motors using DcMotor.setDirection()
         leftRear.setDirection(DcMotorSimple.Direction.REVERSE); // add if needed
         leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightRear.setDirection(DcMotorSimple.Direction.REVERSE); // fix for broken motor
+        rightRear.setDirection(DcMotorSimple.Direction.FORWARD); // fix for broken motor
+        rightFront.setDirection(DcMotorSimple.Direction.FORWARD);
 
         List<Integer> lastTrackingEncPositions = new ArrayList<>();
         List<Integer> lastTrackingEncVels = new ArrayList<>();
