@@ -29,6 +29,7 @@ public class Limelight extends Mechanism {
     // Last known global field pose from MegaTag2, in RoadRunner units (inches)
     private Pose2d globalPose = null;
     private long globalPoseStalenessMs = Long.MAX_VALUE;
+    private boolean Red;
 
     public static class Location {
         public int tagID;
@@ -71,6 +72,21 @@ public class Limelight extends Mechanism {
         limelight.setPollRateHz(100);
         limelight.pipelineSwitch(0);  // AprilTag pipeline
         limelight.start();
+    }
+    public void init(HardwareMap hwMap, boolean Red) {
+        limelight = hwMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        if (Red) {
+            limelight.pipelineSwitch(0);
+        }
+        else{
+            limelight.pipelineSwitch(1);
+        }
+        this.Red = Red;
+        limelight.start();
+    }
+    public boolean getColor(){
+        return Red;
     }
 
     /**

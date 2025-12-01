@@ -227,6 +227,9 @@ public class Scoring extends Mechanism {
         } else if (!align) {
             shootButtonLatched = false;
         }
+        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
+            goToFarTipStep();
+        }
 
         boolean abortPressed = gamepad.dpad_down;
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT) && !abortButtonLatched) {
