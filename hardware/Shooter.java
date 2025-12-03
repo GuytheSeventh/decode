@@ -52,17 +52,14 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
-        if (voltage.getVoltage() < 10){
-            shootPwr += .3;
-        }
-        motors[0].setPower(shootPwr);
-        motors[1].setPower(shootPwr);
+        double diff = 14 - voltage.getVoltage();
+        double temp = shootPwr;
+        temp *= diff;
+        motors[0].setPower(temp);
+        motors[1].setPower(temp);
     }
 
     public void passivePower() {
-        if (voltage.getVoltage() < 10){
-            shootPwr += .3;
-        }
         motors[0].setPower(passPwr);
         motors[1].setPower(passPwr);
     }
