@@ -25,6 +25,8 @@ public class Shooter extends Mechanism {
     public static double shootPwr = 0.89; // 0.18
     public static double passPwr = 0.18;
     public static double srvo = 0;
+    public static double pidtune = .1;
+    public static final double NOMINAL_VOLTAGE = 12.0;
 
     public Shooter(LinearOpMode opMode) { this.opMode = opMode; }
 
@@ -52,11 +54,14 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
-        double diff = 14 - voltage.getVoltage();
-        double temp = shootPwr;
-        temp *= diff;
-        motors[0].setPower(temp);
-        motors[1].setPower(temp);
+        double currentVoltage = voltage.getVoltage();
+        if (currentVoltage <= 0) {
+            currentVoltage = NOMINAL_VOLTAGE;
+        }
+        double scale = NOMINAL_VOLTAGE / currentVoltage;
+        double compensatedPower = shootPwr * scale;
+        motors[0].setPower(compensatedPower);
+        motors[1].setPower(compensatedPower);
     }
 
     public void passivePower() {
