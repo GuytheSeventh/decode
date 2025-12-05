@@ -24,6 +24,12 @@ public class Robot extends Mechanism {
         elapsedTime = new ElapsedTime();
         elapsedTime.reset();
     }
+    public void init(HardwareMap hwMap, boolean Red) {
+        scoring.init(hwMap, Red);
+
+        elapsedTime = new ElapsedTime();
+        elapsedTime.reset();
+    }
 
     @Override
     public void telemetry(Telemetry telemetry) {

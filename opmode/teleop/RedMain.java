@@ -10,11 +10,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @TeleOp(name = "RedMain", group = "_amain")
 public class RedMain extends LinearOpMode {
 
-    private Robot robot = new Robot(this);
+    private Robot robot;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        robot.init(hardwareMap);
+        robot = new Robot(this);
+        robot.init(hardwareMap, true);
 
         telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 

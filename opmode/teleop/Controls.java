@@ -4,13 +4,11 @@ import com.stuyfission.fissionlib.input.GamepadStatic.Input;
 public class Controls {
     public static final Input SHOOT = Input.RIGHT_TRIGGER;
     public static final Input ABORT = Input.DPAD_DOWN;
-    public static final Input GOTOP = Input.NONE;
+    public static final Input OUTTAKE = Input.DPAD_LEFT;
     public static final Input GOBOTTOM = Input.LEFT_BUMPER;
     public static final Input ALIGN = Input.RIGHT_BUMPER;
-    public static final Input OUTTAKE = Input.NONE;
-    public static final Input INTAKE_SHORT = Input.NONE; // SQUARE
     public static final Input INTAKE = Input.A; // CROSS
-    public static final Input PIVOT_FRONT = Input.A; // CROSS
+    public static final Input STOP = Input.X; // CROSS
     public static final Input PIVOT_WALL = Input.X; // square
     public static final Input PIVOT_BASKET = Input.Y; // TRIANGLE
     public static final Input PIVOT_LOW_BASKET = Input.B; // CIRCLE

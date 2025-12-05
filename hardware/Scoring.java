@@ -23,11 +23,11 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private Drivetrain drivetrain;
-    private Limelight limelight;
-    //private final Intake intake;
-    //private final Transfer transfer;
-    //private final Shooter shooter;
+    private final Drivetrain drivetrain;
+    private final Limelight limelight;
+    private final Intake intake;
+    private final Transfer transfer;
+    private final Shooter shooter;
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
@@ -69,7 +69,7 @@ public class Scoring extends Mechanism {
     public static double YAW_TOLERANCE_DEG = 2.0;     // angle error (deg)
 
     // Shooter timing
-    public static double SHOOT_SPINUP_TIME = 0.5;     // seconds to spin up shooter
+    public static double SHOOT_SPINUP_TIME = 1.0;     // seconds to spin up shooter
     public static double SHOOT_FEED_TIME = 1.0;       // seconds to feed balls
 
     // -------- Far shooting zone target pose (RoadRunner units: inches, radians) --------
@@ -86,6 +86,9 @@ public class Scoring extends Mechanism {
     public static double FAR_KP_TRANSLATION = 0.03;    // drive power per inch of error
     public static double FAR_KP_ROTATION = 0.04;       // drive power per rad of error
 
+    private int aS = 0;
+    private boolean Red;
+
     // ------------------ BUTTON EDGE FLAGS ------------------
     private boolean shootButtonLatched = false;
     private boolean abortButtonLatched = false;
@@ -96,9 +99,19 @@ public class Scoring extends Mechanism {
 
         drivetrain = new Drivetrain(opMode);
         limelight = new Limelight(opMode);
-        //intake = new Intake(opMode);
-        //transfer = new Transfer(opMode);
-        //shooter = new Shooter(opMode);
+        intake = new Intake(opMode);
+        transfer = new Transfer(opMode);
+        shooter = new Shooter(opMode);
+    }
+    public Scoring(LinearOpMode opMode, boolean Red) {
+        this.opMode = opMode;
+        this.Red = Red;
+
+        drivetrain = new Drivetrain(opMode);
+        limelight = new Limelight(opMode);
+        intake = new Intake(opMode);
+        transfer = new Transfer(opMode);
+        shooter = new Shooter(opMode);
     }
 
     // ------------------ INIT ------------------
@@ -106,9 +119,17 @@ public class Scoring extends Mechanism {
     public void init(HardwareMap hwMap) {
         drivetrain.init(hwMap);
         limelight.init(hwMap);
-        //intake.init(hwMap);
-        //transfer.init(hwMap);
-        //shooter.init(hwMap);
+        intake.init(hwMap);
+        transfer.init(hwMap);
+        shooter.init(hwMap);
+    }
+
+    public void init(HardwareMap hwMap, boolean Red) {
+        drivetrain.init(hwMap);
+        limelight.init(hwMap, Red);
+        intake.init(hwMap);
+        transfer.init(hwMap);
+        shooter.init(hwMap);
     }
 
     // ------------------ TELEMETRY ------------------
@@ -157,8 +178,8 @@ public class Scoring extends Mechanism {
         mode = Mode.DRIVER;
         shootStage = ShootStage.NONE;
         drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-        //shooter.passivePower();
-        //transfer.downPos();
+        shooter.passivePower();
+        transfer.downPos();
     }
 
     private Pose2d getFarTipPose() {
@@ -203,9 +224,9 @@ public class Scoring extends Mechanism {
                 manualDrive(gamepad);
                 break;
 
-           // case GO_TO_FAR_TIP:
-              //  goToFarTipStep();
-               // break;
+           case GO_TO_FAR_TIP:
+                goToFarTipStep();
+                break;
 
             case AUTO_ALIGN:
                 autoAlignStep();
@@ -221,7 +242,7 @@ public class Scoring extends Mechanism {
 
     private void handleButtons(Gamepad gamepad) {
         boolean align = gamepad.right_bumper;
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN) && !shootButtonLatched) {
+        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN) && !shootButtonLatched) {
             shootButtonLatched = true;
             requestAutoAlignAndShoot();
         } else if (!align) {
@@ -239,7 +260,7 @@ public class Scoring extends Mechanism {
             abortButtonLatched = false;
         }
 
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
+        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
 
             beginShooting();
         }
@@ -248,13 +269,13 @@ public class Scoring extends Mechanism {
     private void handleIntake(Gamepad gamepad) {
         // INTAKE: A
         // OUTTAKE: left bumper
-        if (gamepad.a) {
-            //intake.intake();
-            System.out.println("intake");
-        } else if (gamepad.left_bumper) {
-            System.out.println("outtake");
-        } else {
-            System.out.println("stop");
+        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
+            intake.intake();
+        }
+        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
+            intake.outtake();
+        } if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
+            intake.stop();
         }
     }
 
@@ -273,6 +294,7 @@ public class Scoring extends Mechanism {
      * Once we are close enough to FAR_TIP pose, we switch to AUTO_ALIGN for fine tag-based alignment.
      */
     private void goToFarTipStep() {
+        aS = 1;
         Pose2d pose = drivetrain.getPoseEstimate();
         Pose2d target = getFarTipPose();
 
@@ -321,7 +343,7 @@ public class Scoring extends Mechanism {
 
         // If no tag seen, slowly spin in place to search
         if (loc.tagID < 0) {
-            drivetrain.setDrivePower(new Pose2d(0, 0, +MAX_AUTO_TURN_SPEED));
+            drivetrain.setDrivePower(new Pose2d(0, 0, Red ? MAX_AUTO_TURN_SPEED : -MAX_AUTO_TURN_SPEED));
             return;
         }
         else{
@@ -343,19 +365,23 @@ public class Scoring extends Mechanism {
         if (aligned) {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-            //beginShooting();
-            // If you don't want auto-shoot at all yet, comment the above line and just do:
-            mode = Mode.DRIVER;
+            if (aS > 0) {
+                beginShooting();
+            }
+            else{
+                mode = Mode.DRIVER;
+            }
         }
     }
 
     private void beginShooting() {
+        aS = 0;
         mode = Mode.SHOOTING;
         shootStage = ShootStage.SPINUP;
         stageStartTime = opMode.getRuntime();
 
-        //shooter.shoot();      // spin shooter up
-        //transfer.downPos();   // make sure transfer is down while spinning up
+        shooter.shoot();      // spin shooter up
+        transfer.downPos();   // make sure transfer is down while spinning up
     }
 
     private void autoShootStep() {
@@ -366,7 +392,7 @@ public class Scoring extends Mechanism {
             case SPINUP:
                 if (now - stageStartTime >= SHOOT_SPINUP_TIME) {
                     // Start feeding balls
-                    //transfer.upPos();
+                    transfer.upPos();
                     shootStage = ShootStage.FEEDING;
                     stageStartTime = now;
                 }
@@ -375,8 +401,8 @@ public class Scoring extends Mechanism {
             case FEEDING:
                 if (now - stageStartTime >= SHOOT_FEED_TIME) {
                     // Done shooting, reset
-                    //transfer.downPos();
-                    //shooter.passivePower();
+                    transfer.downPos();
+                    shooter.passivePower();
                     shootStage = ShootStage.NONE;
                     mode = Mode.DRIVER;
                 }

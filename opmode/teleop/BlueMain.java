@@ -15,7 +15,7 @@ public class BlueMain extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         robot = new Robot(this);
-        robot.init(hardwareMap);
+        robot.init(hardwareMap, false);
 
         telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
