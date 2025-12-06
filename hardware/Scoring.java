@@ -88,6 +88,7 @@ public class Scoring extends Mechanism {
 
     private int aS = 0;
     private boolean Red;
+    private int id;
 
     // ------------------ BUTTON EDGE FLAGS ------------------
     private boolean shootButtonLatched = false;
@@ -106,6 +107,12 @@ public class Scoring extends Mechanism {
     public Scoring(LinearOpMode opMode, boolean Red) {
         this.opMode = opMode;
         this.Red = Red;
+        if (this.Red){
+            id = 24;
+        }
+        else{
+            id = 20;
+        }
 
         drivetrain = new Drivetrain(opMode);
         limelight = new Limelight(opMode);
@@ -342,8 +349,8 @@ public class Scoring extends Mechanism {
         Limelight.Location loc = limelight.getBest();
 
         // If no tag seen, slowly spin in place to search
-        if (loc.tagID < 0) {
-            drivetrain.setDrivePower(new Pose2d(0, 0, Red ? MAX_AUTO_TURN_SPEED : -MAX_AUTO_TURN_SPEED));
+        if (loc.tagID < 0 || loc.tagID != id) {
+            drivetrain.setDrivePower(new Pose2d(0, 0, Red ? -MAX_AUTO_TURN_SPEED : MAX_AUTO_TURN_SPEED));
             return;
         }
         else{

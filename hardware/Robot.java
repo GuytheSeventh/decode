@@ -16,6 +16,10 @@ public class Robot extends Mechanism {
         this.opMode = opMode;
         scoring = new Scoring(opMode);
     }
+    public Robot(LinearOpMode opMode, boolean Red) {
+        this.opMode = opMode;
+        scoring = new Scoring(opMode, Red);
+    }
 
     @Override
     public void init(HardwareMap hwMap) {

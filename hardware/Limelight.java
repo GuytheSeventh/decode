@@ -73,6 +73,7 @@ public class Limelight extends Mechanism {
         limelight.pipelineSwitch(0);  // AprilTag pipeline
         limelight.start();
     }
+
     public void init(HardwareMap hwMap, boolean Red) {
         limelight = hwMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
@@ -80,7 +81,7 @@ public class Limelight extends Mechanism {
             limelight.pipelineSwitch(0);
         }
         else{
-            limelight.pipelineSwitch(1);
+            limelight.pipelineSwitch(0);
         }
         this.Red = Red;
         limelight.start();
