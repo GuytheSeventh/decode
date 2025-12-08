@@ -1,11 +1,12 @@
-package org.firstinspires.ftc.teamcode.hardware;
+package org.firstinspires.ftc.teamcode.hardware.drive;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.stuyfission.fissionlib.util.Mechanism;
 
-import org.firstinspires.ftc.teamcode.hardware.drivebase.FieldCentricDrivetrain;
+import org.firstinspires.ftc.teamcode.hardware.Scoring;
+import org.firstinspires.ftc.teamcode.hardware.drive.FieldCentricDrivetrain;
 
 public class FieldCentricRobot extends Mechanism {
     private Scoring scoring = new Scoring(opMode);

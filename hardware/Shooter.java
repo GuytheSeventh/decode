@@ -22,8 +22,8 @@ public class Shooter extends Mechanism {
 
     private VoltageSensor voltage;
 
-    public static double shootPwr = 0.89; // 0.18
-    public static double passPwr = 0.18;
+    public static double shootPwr = 7; // 0.18
+    public static double passPwr = 2;
     public static double srvo = 0;
     public static double pidtune = .1;
     public static final double NOMINAL_VOLTAGE = 12.0;
@@ -32,12 +32,12 @@ public class Shooter extends Mechanism {
 
     @Override
     public void init(HardwareMap hwMap) {
-        voltage = hwMap.voltageSensor.iterator().next();
-        servo = hwMap.get(Servo.class, "shooterServo");
+        //voltage = hwMap.voltageSensor.iterator().next();
+       // servo = hwMap.get(Servo.class, "shooterServo");
 
-        servo.setPosition(srvo);
-        motors[0] = hwMap.get(DcMotorEx.class, "shooterLeftMotor");
-        motors[1] = hwMap.get(DcMotorEx.class, "shooterRightMotor");
+        //servo.setPosition(srvo);
+        motors[0] = hwMap.get(DcMotorEx.class, "leftShoot");
+        motors[1] = hwMap.get(DcMotorEx.class, "rightShoot");
 
         motors[0].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motors[1].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -49,16 +49,15 @@ public class Shooter extends Mechanism {
         motors[1].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
-        motors[1].setDirection(DcMotorEx.Direction.REVERSE);
 
     }
 
     public void shoot() {
-        double currentVoltage = voltage.getVoltage();
-        if (currentVoltage <= 0) {
-            currentVoltage = NOMINAL_VOLTAGE;
-        }
-        double scale = NOMINAL_VOLTAGE / currentVoltage;
+        //double currentVoltage = voltage.getVoltage();
+       // if (currentVoltage <= 0) {
+        //    currentVoltage = NOMINAL_VOLTAGE;
+      //  }
+        double scale = NOMINAL_VOLTAGE / 12;
         double compensatedPower = shootPwr * scale;
         motors[0].setPower(compensatedPower);
         motors[1].setPower(compensatedPower);
@@ -69,8 +68,9 @@ public class Shooter extends Mechanism {
         motors[1].setPower(passPwr);
     }
 
-    public void setPower(double d){
-        shootPwr = d;
+    public void stop(){
+        motors[0].setPower(0);
+        motors[1].setPower(0);
     }
 
     public void adjustPower(){

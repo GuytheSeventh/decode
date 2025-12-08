@@ -3,14 +3,18 @@ package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.stuyfission.fissionlib.input.GamepadStatic;
 import com.stuyfission.fissionlib.util.Mechanism;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.hardware.drive.Drivetrain;
+import org.firstinspires.ftc.teamcode.hardware.drive.FieldCentricDrivetrain;
 import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 
 /**
@@ -23,11 +27,12 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private final Drivetrain drivetrain;
+    private final FieldCentricDrivetrain drivetrain;
     private final Limelight limelight;
     private final Intake intake;
     private final Transfer transfer;
     private final Shooter shooter;
+    IMU imu;
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
@@ -40,6 +45,9 @@ public class Scoring extends Mechanism {
     private enum ShootStage {
         NONE,
         SPINUP,
+        BALL1,
+        BALL2,
+        BALL3,
         FEEDING
     }
 
@@ -61,7 +69,7 @@ public class Scoring extends Mechanism {
 
     // Max speed while auto-aligning / pathing (0..1 drive power)
     public static double MAX_AUTO_SPEED = 0.6;
-    public static double MAX_AUTO_TURN_SPEED = .5;
+    public static double MAX_AUTO_TURN_SPEED = .4;
 
     // Alignment tolerances (local/tag-relative)
     public static double X_TOLERANCE = 0.03;          // side error (m)
@@ -69,8 +77,9 @@ public class Scoring extends Mechanism {
     public static double YAW_TOLERANCE_DEG = 2.0;     // angle error (deg)
 
     // Shooter timing
-    public static double SHOOT_SPINUP_TIME = 1.0;     // seconds to spin up shooter
-    public static double SHOOT_FEED_TIME = 1.0;       // seconds to feed balls
+    public static double SHOOT_SPINUP_TIME = 2;     // seconds to spin up shooter
+    public static double SHOOT_FEED_TIME = 1;       // seconds to feed balls
+    public static double TRANSFER_PWR = .8;
 
     // -------- Far shooting zone target pose (RoadRunner units: inches, radians) --------
     // Fill these from real field measurements (pose of the tip of the far shooting zone)
@@ -98,7 +107,7 @@ public class Scoring extends Mechanism {
     public Scoring(LinearOpMode opMode) {
         this.opMode = opMode;
 
-        drivetrain = new Drivetrain(opMode);
+        drivetrain = new FieldCentricDrivetrain(opMode);
         limelight = new Limelight(opMode);
         intake = new Intake(opMode);
         transfer = new Transfer(opMode);
@@ -114,7 +123,7 @@ public class Scoring extends Mechanism {
             id = 20;
         }
 
-        drivetrain = new Drivetrain(opMode);
+        drivetrain = new FieldCentricDrivetrain(opMode);
         limelight = new Limelight(opMode);
         intake = new Intake(opMode);
         transfer = new Transfer(opMode);
@@ -129,6 +138,13 @@ public class Scoring extends Mechanism {
         intake.init(hwMap);
         transfer.init(hwMap);
         shooter.init(hwMap);
+        imu = hwMap.get(IMU.class, "imu");
+        // Adjust the orientation parameters to match your robot
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
+        imu.initialize(parameters);
     }
 
     public void init(HardwareMap hwMap, boolean Red) {
@@ -137,6 +153,13 @@ public class Scoring extends Mechanism {
         intake.init(hwMap);
         transfer.init(hwMap);
         shooter.init(hwMap);
+        imu = hwMap.get(IMU.class, "imu");
+        // Adjust the orientation parameters to match your robot
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
+        imu.initialize(parameters);
     }
 
     // ------------------ TELEMETRY ------------------
@@ -168,6 +191,7 @@ public class Scoring extends Mechanism {
         if (mode == Mode.DRIVER) {
             mode = Mode.AUTO_ALIGN;
             shootStage = ShootStage.NONE;
+            aS = 0;
         }
     }
 
@@ -185,8 +209,9 @@ public class Scoring extends Mechanism {
         mode = Mode.DRIVER;
         shootStage = ShootStage.NONE;
         drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-        shooter.passivePower();
-        transfer.downPos();
+        shooter.stop();
+        intake.stop();
+        transfer.stop();
     }
 
     private Pose2d getFarTipPose() {
@@ -229,18 +254,22 @@ public class Scoring extends Mechanism {
         switch (mode) {
             case DRIVER:
                 manualDrive(gamepad);
+                shooter.stop();
                 break;
 
            case GO_TO_FAR_TIP:
+               //manualDrive(gamepad);
                 goToFarTipStep();
                 break;
 
             case AUTO_ALIGN:
+               // manualDrive(gamepad);
                 autoAlignStep();
                 break;
 
             case SHOOTING:
-                autoShootStep();
+                manualDrive(gamepad);
+                shooter.shoot();
                 break;
         }
     }
@@ -248,52 +277,76 @@ public class Scoring extends Mechanism {
     // ------------------ INPUT HANDLING ------------------
 
     private void handleButtons(Gamepad gamepad) {
-        boolean align = gamepad.right_bumper;
-        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN) && !shootButtonLatched) {
-            shootButtonLatched = true;
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN)) {
             requestAutoAlignAndShoot();
-        } else if (!align) {
-            shootButtonLatched = false;
         }
-        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
             goToFarTipStep();
         }
 
-        boolean abortPressed = gamepad.dpad_down;
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT) && !abortButtonLatched) {
-            abortButtonLatched = true;
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT)) {
             abortAuto();
-        } else if (!abortPressed) {
-            abortButtonLatched = false;
         }
 
-        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
-
-            beginShooting();
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
+            mode = Mode.SHOOTING;
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
+            mode = Mode.DRIVER;
         }
     }
 
     private void handleIntake(Gamepad gamepad) {
         // INTAKE: A
         // OUTTAKE: left bumper
-        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
         }
-        if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
             intake.outtake();
-        } if (mode == Mode.DRIVER && GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.BACKUP)) {
+            transfer.backup();
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
             intake.stop();
+            transfer.stop();
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.TRANSFER)){
+            transfer.run();
         }
     }
 
     // ------------------ DRIVING ------------------
 
     private void manualDrive(Gamepad gamepad) {
-        drivetrain.setDrivePower(new Pose2d(
-                -gamepad.left_stick_y,   // forward/back
-                -gamepad.left_stick_x,   // strafe
-                -gamepad.right_stick_x   // rotate
-        ));
+        double y = -gamepad.left_stick_y; // Remember, this is reversed!
+        double x = gamepad.left_stick_x * 1.1; // Counteract imperfect strafing
+        double rx = gamepad.right_stick_x;
+
+        // This button choice was made so that it is hard to hit on accident,
+        // it can be freely changed based on preference.
+        // The equivalent button is start on Xbox-style controllers.
+        if (gamepad.options) {
+            imu.resetYaw();
+        }
+
+        double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+        // Rotate the movement direction counter to the bot's rotation
+        double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+        double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+        // Denominator is the largest motor power (absolute value) or 1
+        // This ensures all the powers maintain the same ratio, but only when
+        // at least one is out of the range [-1, 1]
+        double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
+        double frontLeftPower = (rotY + rotX + rx) / denominator;
+        double backLeftPower = (rotY - rotX + rx) / denominator;
+        double frontRightPower = (rotY - rotX - rx) / denominator;
+        double backRightPower = (rotY + rotX - rx) / denominator;
+
+        drivetrain.setMotorPowers(frontLeftPower, backLeftPower, backRightPower, frontRightPower);
     }
 
     /**
@@ -385,30 +438,70 @@ public class Scoring extends Mechanism {
         aS = 0;
         mode = Mode.SHOOTING;
         shootStage = ShootStage.SPINUP;
-        stageStartTime = opMode.getRuntime();
+       // stageStartTime = opMode.getRuntime();   // make sure transfer is down while spinning up
 
-        shooter.shoot();      // spin shooter up
-        transfer.downPos();   // make sure transfer is down while spinning up
+
+
+
+        shooter.shoot();
+        double then = opMode.getRuntime();
+        double now = opMode.getRuntime();;
+        while (now - then < 5){
+            now = opMode.getRuntime();
+            transfer.backup();
+        }
+        transfer.stop();
     }
 
     private void autoShootStep() {
         double now = opMode.getRuntime();
+        double then = opMode.getRuntime();
         drivetrain.setDrivePower(new Pose2d(0, 0, 0)); // stay still while shooting
 
         switch (shootStage) {
             case SPINUP:
-                if (now - stageStartTime >= SHOOT_SPINUP_TIME) {
+                if (now - then >= SHOOT_SPINUP_TIME) {
                     // Start feeding balls
-                    transfer.upPos();
-                    shootStage = ShootStage.FEEDING;
-                    stageStartTime = now;
+                    transfer.run();
+                    shootStage = ShootStage.BALL1;
+                    now = opMode.getRuntime();
+                }
+                else{
+                    transfer.stop();
+                    then = opMode.getRuntime();
                 }
                 break;
 
-            case FEEDING:
-                if (now - stageStartTime >= SHOOT_FEED_TIME) {
+            case BALL1:
+                if (now - then < SHOOT_FEED_TIME) {
+                    // Start feeding balls
+                    transfer.run();
+                }
+                else{
+                    transfer.stop();
+                    shootStage = ShootStage.BALL2;
+                    now = opMode.getRuntime();
+                }
+                break;
+
+            case BALL2:
+                then = opMode.getRuntime();
+                if (now - then < SHOOT_FEED_TIME) {
+                    // Start feeding balls
+                    transfer.run();
+                }
+                else{
+                    transfer.stop();
+                    shootStage = ShootStage.BALL3;
+                    now = opMode.getRuntime();
+                }
+                break;
+
+            case BALL3:
+                then = opMode.getRuntime();
+                if (now - then >= SHOOT_FEED_TIME) {
                     // Done shooting, reset
-                    transfer.downPos();
+                    transfer.stop();
                     shooter.passivePower();
                     shootStage = ShootStage.NONE;
                     mode = Mode.DRIVER;

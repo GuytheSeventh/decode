@@ -1,5 +1,6 @@
-package org.firstinspires.ftc.teamcode.hardware.drivebase;
+package org.firstinspires.ftc.teamcode.hardware.drive;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -13,15 +14,40 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
 public class FieldCentricDrivetrain extends Mechanism {
 
-    SampleMecanumDrive drive;
+    SampleMecanumDrive rrDrive;
     IMU imu;
 
     public FieldCentricDrivetrain(LinearOpMode opMode) { this.opMode = opMode; }
 
+    public Pose2d getPoseEstimate() {
+        return rrDrive.getPoseEstimate();
+    }
+
+    public void setPoseEstimate(Pose2d pose){
+        rrDrive.setPoseEstimate(pose);
+    }
+
+    /** For backwards compatibility if you used currPos() before. */
+    public Pose2d currPos() {
+        return getPoseEstimate();
+    }
+
+    // ---------- DRIVING ----------
+
+    /** Directly set drive power (x = fwd, y = strafe, heading = turn). */
+    public void setDrivePower(Pose2d drivePower) {
+        rrDrive.setWeightedDrivePower(drivePower);
+    }
+
+    /** Update RoadRunner's localization and trajectory follower. */
+    public void update() {
+        rrDrive.update();
+    }
+
     @Override
     public void init(HardwareMap hwMap) {
-        drive = new SampleMecanumDrive(hwMap);
-        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rrDrive = new SampleMecanumDrive(hwMap);
+        rrDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // Retrieve the IMU from the hardware map
         imu = hwMap.get(IMU.class, "imu");
@@ -60,6 +86,9 @@ public class FieldCentricDrivetrain extends Mechanism {
         double frontRightPower = (rotY - rotX - rx) / denominator;
         double backRightPower = (rotY + rotX - rx) / denominator;
 
-        drive.setMotorPowers(frontLeftPower, backLeftPower, backRightPower, frontRightPower);
+        rrDrive.setMotorPowers(frontLeftPower, backLeftPower, backRightPower, frontRightPower);
+    }
+    public void setMotorPowers(double fL, double bL, double bR, double fR){
+        rrDrive.setMotorPowers(fL,bL,bR,fR);
     }
 }

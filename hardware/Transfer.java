@@ -18,40 +18,45 @@ import org.firstinspires.ftc.teamcode.util.PIDController;
 public class Transfer extends Mechanism {
         private PIDController controller;
 
-        private final DcMotorEx[] motor = new DcMotorEx[1];
+        private DcMotorEx motor;// = DcMotorEx;
         private Servo servo;
 
         private VoltageSensor voltage;
 
         public double down = 0.89; // 0.18
         public double up = 0.18;
-        public double m = 1;
+
+        public static double pwr = .9;
+        public static double back =.7;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
         @Override
         public void init(HardwareMap hwMap) {
-            voltage = hwMap.voltageSensor.iterator().next();
-            motor[0] = hwMap.get(DcMotorEx.class, "transferMotor");
-            servo = hwMap.get(Servo.class, "transferServo");
-            servo.setPosition(down);
+           // voltage = hwMap.voltageSensor.iterator().next();
+            motor = hwMap.get(DcMotorEx.class, "transfer");
+           // servo = hwMap.get(Servo.class, "transferServo");
+           // servo.setPosition(down);
 
-            motor[0].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-            motor[0].setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
+            motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
 
-            motor[0].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-            motor[0].setDirection(DcMotorEx.Direction.REVERSE);
+            motor.setDirection(DcMotorEx.Direction.REVERSE);
 
         }
 
         public void run() {
-            motor[0].setPower(m);
+            motor.setPower(pwr);
         }
 
         public void stop() {
-            motor[0].setPower(0);
+            motor.setPower(0);
+        }
+        public void backup(){
+            motor.setPower(back);
         }
 
         public void upPos(){

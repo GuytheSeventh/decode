@@ -21,7 +21,7 @@ public class Intake extends Mechanism {
     private DcMotor intake;
     private PIDController controller;
 
-    public static double POWER = 1;
+    public static double POWER = 1.1;
 
     public Intake(LinearOpMode opMode) {
         this.opMode = opMode;

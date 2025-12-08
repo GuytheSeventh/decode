@@ -88,8 +88,8 @@ public class auto extends LinearOpMode {
     private Command outtake = () -> intake.outtake();
     private Command stopIntake = () -> intake.stop();
     private Command intakeCommand = () -> intake.intake();
-    private Command transferUp = () -> transfer.upPos();
-    private Command transferDown = () -> transfer.downPos();
+    private Command transferUp = () -> transfer.run();
+    private Command transferDown = () -> transfer.backup();
     private Command transferStop = () -> transfer.stop();
     private Command shoot = () -> shooter.shoot();
     private Command passive = () -> shooter.passivePower();
@@ -107,9 +107,6 @@ public class auto extends LinearOpMode {
     private CommandSequence preload = new CommandSequence()
             .addCommand(commandBusyTrue)
             .addCommand(preloadCommand)
-            .addCommand(shoot)
-            .addWaitCommand(1)
-            .addCommand(transferUp)
             .addWaitCommand(1)
             .addCommand(back2wallCommand)
             .addCommand(commandBusyFalse)
