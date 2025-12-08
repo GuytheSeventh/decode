@@ -26,8 +26,9 @@ public class Transfer extends Mechanism {
         public double down = 0.89; // 0.18
         public double up = 0.18;
 
-        public static double pwr = .9;
-        public static double back =.7;
+        public static double transferPwer = .9;
+        public static double back =.5;
+        public static double intakePwer = .37;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
@@ -49,7 +50,10 @@ public class Transfer extends Mechanism {
         }
 
         public void run() {
-            motor.setPower(pwr);
+            motor.setPower(transferPwer);
+        }
+        public void intake(){
+            motor.setPower(intakePwer);
         }
 
         public void stop() {

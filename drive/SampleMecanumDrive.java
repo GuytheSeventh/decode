@@ -160,6 +160,12 @@ public class SampleMecanumDrive extends MecanumDrive {
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
         return new TrajectoryBuilder(startPose, VEL_CONSTRAINT, ACCEL_CONSTRAINT);
     }
+    public double getHeading(){
+        return odo.getHeading();
+    }
+    public void resetIMU(){
+        odo.recalibrateIMU();
+    }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose, boolean reversed) {
         return new TrajectoryBuilder(startPose, reversed, VEL_CONSTRAINT, ACCEL_CONSTRAINT);

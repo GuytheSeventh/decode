@@ -22,7 +22,7 @@ public class Shooter extends Mechanism {
 
     private VoltageSensor voltage;
 
-    public static double shootPwr = 7; // 0.18
+    public static double shootPwr = 8; // 0.18
     public static double passPwr = 2;
     public static double srvo = 0;
     public static double pidtune = .1;

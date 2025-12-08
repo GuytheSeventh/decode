@@ -138,13 +138,6 @@ public class Scoring extends Mechanism {
         intake.init(hwMap);
         transfer.init(hwMap);
         shooter.init(hwMap);
-        imu = hwMap.get(IMU.class, "imu");
-        // Adjust the orientation parameters to match your robot
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-        imu.initialize(parameters);
     }
 
     public void init(HardwareMap hwMap, boolean Red) {
@@ -153,13 +146,6 @@ public class Scoring extends Mechanism {
         intake.init(hwMap);
         transfer.init(hwMap);
         shooter.init(hwMap);
-        imu = hwMap.get(IMU.class, "imu");
-        // Adjust the orientation parameters to match your robot
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-        imu.initialize(parameters);
     }
 
     // ------------------ TELEMETRY ------------------
@@ -283,6 +269,7 @@ public class Scoring extends Mechanism {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
             goToFarTipStep();
         }
+        if (GamepadStatic.isButtonPressed(gamepad,Controls.RESETHEADING))
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT)) {
             abortAuto();
@@ -304,9 +291,10 @@ public class Scoring extends Mechanism {
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
             intake.outtake();
-        }
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.BACKUP)) {
             transfer.backup();
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.BACKUP)){
+            transfer.intake();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
             intake.stop();
@@ -327,11 +315,8 @@ public class Scoring extends Mechanism {
         // This button choice was made so that it is hard to hit on accident,
         // it can be freely changed based on preference.
         // The equivalent button is start on Xbox-style controllers.
-        if (gamepad.options) {
-            imu.resetYaw();
-        }
 
-        double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        double botHeading = drivetrain.getHeading();
 
         // Rotate the movement direction counter to the bot's rotation
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -347,6 +332,7 @@ public class Scoring extends Mechanism {
         double backRightPower = (rotY + rotX - rx) / denominator;
 
         drivetrain.setMotorPowers(frontLeftPower, backLeftPower, backRightPower, frontRightPower);
+
     }
 
     /**

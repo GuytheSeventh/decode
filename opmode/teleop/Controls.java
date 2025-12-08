@@ -2,17 +2,17 @@ package org.firstinspires.ftc.teamcode.opmode.teleop;
 import com.stuyfission.fissionlib.input.GamepadStatic.Input;
 
 public class Controls {
-    public static final Input SHOOT = Input.RIGHT_TRIGGER;
+    public static final Input SHOOT = Input.LEFT_TRIGGER;
     public static final Input ABORT = Input.DPAD_DOWN;
-    public static final Input OUTTAKE = Input.DPAD_LEFT;
-    public static final Input GOBOTTOM = Input.LEFT_BUMPER;
-    public static final Input ALIGN = Input.RIGHT_BUMPER;
-    public static final Input INTAKE = Input.A; // CROSS
+    public static final Input OUTTAKE = Input.RIGHT_BUMPER;
+    public static final Input GOBOTTOM = Input.NONE;
+    public static final Input ALIGN = Input.NONE;
+    public static final Input INTAKE = Input.RIGHT_TRIGGER; // CROSS
     public static final Input STOP = Input.X; // CROSS
-    public static final Input TRANSFER = Input.DPAD_UP; // square
-    public static final Input UNSHOOT = Input.LEFT_TRIGGER; // TRIANGLE
-    public static final Input BACKUP = Input.DPAD_RIGHT; // CIRCLE
-    public static final Input PIVOT_CLIP = Input.NONE; // CIRCLE
+    public static final Input TRANSFER = Input.LEFT_BUMPER; // square
+    public static final Input UNSHOOT = Input.NONE; // TRIANGLE
+    public static final Input BACKUP = Input.DPAD_UP; // CIRCLE
+    public static final Input RESETHEADING = Input.DPAD_LEFT; // CIRCLE
     public static final Input TELE_EXTEND = Input.RIGHT_TRIGGER;
     public static final Input TELE_RETRACT = Input.LEFT_TRIGGER;
     public static final Input WRIST_LEFT = Input.DPAD_LEFT;
