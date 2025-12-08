@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -21,6 +22,7 @@ public class Shooter extends Mechanism {
     private Servo servo;
 
     private VoltageSensor voltage;
+    private AnalogInput encoder;
 
     public static double shootPwr = 8; // 0.18
     public static double passPwr = 2;
@@ -36,13 +38,14 @@ public class Shooter extends Mechanism {
        // servo = hwMap.get(Servo.class, "shooterServo");
 
         //servo.setPosition(srvo);
+        encoder = hwMap.g
         motors[0] = hwMap.get(DcMotorEx.class, "leftShoot");
         motors[1] = hwMap.get(DcMotorEx.class, "rightShoot");
 
         motors[0].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motors[1].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        motors[0].setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
+        motors[0].setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // might be wrong RunMode
         motors[1].setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         motors[0].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -57,6 +60,7 @@ public class Shooter extends Mechanism {
        // if (currentVoltage <= 0) {
         //    currentVoltage = NOMINAL_VOLTAGE;
       //  }
+        motors[1].getVelocity();
         double scale = NOMINAL_VOLTAGE / 12;
         double compensatedPower = shootPwr * scale;
         motors[0].setPower(compensatedPower);

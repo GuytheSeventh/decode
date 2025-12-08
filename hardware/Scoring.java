@@ -255,7 +255,7 @@ public class Scoring extends Mechanism {
 
             case SHOOTING:
                 manualDrive(gamepad);
-                shooter.shoot();
+                autoShootStep();
                 break;
         }
     }
@@ -269,17 +269,19 @@ public class Scoring extends Mechanism {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
             goToFarTipStep();
         }
-        if (GamepadStatic.isButtonPressed(gamepad,Controls.RESETHEADING))
+        if (GamepadStatic.isButtonPressed(gamepad,Controls.RESETHEADING)){
+            drivetrain.resetIMU();
+        }
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT)) {
             abortAuto();
         }
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
-            mode = Mode.SHOOTING;
+            beginShooting();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
-            mode = Mode.DRIVER;
+            shooter.shoot();
         }
     }
 
@@ -288,12 +290,18 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
+            transfer.intake();
+        }
+        else{
+            intake.stop();
+            transfer.stop();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
             intake.outtake();
             transfer.backup();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.BACKUP)){
+            intake.intake();
             transfer.intake();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
@@ -424,75 +432,31 @@ public class Scoring extends Mechanism {
         aS = 0;
         mode = Mode.SHOOTING;
         shootStage = ShootStage.SPINUP;
-       // stageStartTime = opMode.getRuntime();   // make sure transfer is down while spinning up
+        stageStartTime = opMode.getRuntime();   // make sure transfer is down while spinning up
 
 
 
 
         shooter.shoot();
-        double then = opMode.getRuntime();
-        double now = opMode.getRuntime();;
-        while (now - then < 5){
-            now = opMode.getRuntime();
-            transfer.backup();
-        }
-        transfer.stop();
+
     }
 
     private void autoShootStep() {
         double now = opMode.getRuntime();
-        double then = opMode.getRuntime();
         drivetrain.setDrivePower(new Pose2d(0, 0, 0)); // stay still while shooting
 
         switch (shootStage) {
             case SPINUP:
-                if (now - then >= SHOOT_SPINUP_TIME) {
-                    // Start feeding balls
-                    transfer.run();
-                    shootStage = ShootStage.BALL1;
-                    now = opMode.getRuntime();
-                }
-                else{
-                    transfer.stop();
-                    then = opMode.getRuntime();
-                }
-                break;
-
-            case BALL1:
-                if (now - then < SHOOT_FEED_TIME) {
+                if (now - stageStartTime >= SHOOT_SPINUP_TIME) {
                     // Start feeding balls
                     transfer.run();
                 }
                 else{
                     transfer.stop();
-                    shootStage = ShootStage.BALL2;
-                    now = opMode.getRuntime();
                 }
                 break;
 
-            case BALL2:
-                then = opMode.getRuntime();
-                if (now - then < SHOOT_FEED_TIME) {
-                    // Start feeding balls
-                    transfer.run();
-                }
-                else{
-                    transfer.stop();
-                    shootStage = ShootStage.BALL3;
-                    now = opMode.getRuntime();
-                }
-                break;
 
-            case BALL3:
-                then = opMode.getRuntime();
-                if (now - then >= SHOOT_FEED_TIME) {
-                    // Done shooting, reset
-                    transfer.stop();
-                    shooter.passivePower();
-                    shootStage = ShootStage.NONE;
-                    mode = Mode.DRIVER;
-                }
-                break;
 
             case NONE:
             default:

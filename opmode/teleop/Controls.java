@@ -10,7 +10,7 @@ public class Controls {
     public static final Input INTAKE = Input.RIGHT_TRIGGER; // CROSS
     public static final Input STOP = Input.X; // CROSS
     public static final Input TRANSFER = Input.LEFT_BUMPER; // square
-    public static final Input UNSHOOT = Input.NONE; // TRIANGLE
+    public static final Input UNSHOOT = Input.DPAD_RIGHT; // TRIANGLE
     public static final Input BACKUP = Input.DPAD_UP; // CIRCLE
     public static final Input RESETHEADING = Input.DPAD_LEFT; // CIRCLE
     public static final Input TELE_EXTEND = Input.RIGHT_TRIGGER;

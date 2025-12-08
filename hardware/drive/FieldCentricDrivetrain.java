@@ -84,4 +84,7 @@ public class FieldCentricDrivetrain extends Mechanism {
     public double getHeading(){
         return rrDrive.getHeading();
     }
+    public void resetIMU(){
+        rrDrive.resetIMU();
+    }
 }
