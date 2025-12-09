@@ -261,13 +261,13 @@ public class Scoring extends Mechanism {
 
     private void handleButtons(Gamepad gamepad) {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN)) {
-            requestAutoAlignAndShoot();
+            mode = Mode.AUTO_ALIGN;
         }
         else{
             mode = Mode.DRIVER;
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
-            goToFarTipStep();
+            mode = Mode.GO_TO_FAR_TIP;
         }
         else{
             mode = Mode.DRIVER;

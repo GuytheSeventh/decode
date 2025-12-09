@@ -5,12 +5,12 @@ public class Controls {
     public static final Input SHOOT = Input.LEFT_TRIGGER;
     public static final Input ABORT = Input.DPAD_DOWN;
     public static final Input OUTTAKE = Input.RIGHT_BUMPER;
-    public static final Input GOBOTTOM = Input.NONE;
-    public static final Input ALIGN = Input.NONE;
+    public static final Input GOBOTTOM = Input.Y;
+    public static final Input ALIGN = Input.X;
     public static final Input INTAKE = Input.RIGHT_TRIGGER; // CROSS
-    public static final Input STOP = Input.X; // CROSS
+    public static final Input STOP = Input.A; // CROSS
     public static final Input TRANSFER = Input.LEFT_BUMPER; // square
-    public static final Input UNSHOOT = Input.DPAD_RIGHT; // TRIANGLE
+    public static final Input GOTOP = Input.B; // TRIANGLE
     public static final Input BACKUP = Input.DPAD_UP; // CIRCLE
     public static final Input RESETHEADING = Input.DPAD_LEFT; // CIRCLE
     public static final Input TELE_EXTEND = Input.RIGHT_TRIGGER;
