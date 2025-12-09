@@ -43,7 +43,7 @@ public class Transfer extends Mechanism {
 
             motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
 
-            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
             motor.setDirection(DcMotorEx.Direction.REVERSE);
 

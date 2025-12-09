@@ -165,6 +165,12 @@ public class Scoring extends Mechanism {
         telemetry.addData("RR Pose X (in)", pose.getX());
         telemetry.addData("RR Pose Y (in)", pose.getY());
         telemetry.addData("RR Pose H (deg)", Math.toDegrees(pose.getHeading()));
+
+        double currentTicksPerSecond = shooter.motors[0].getVelocity();
+        double currentRpm = currentTicksPerSecond * 60.0 / Shooter.TICKS_PER_REV;
+        telemetry.addData("Shooter RPM", currentRpm);
+
+
     }
 
     // ------------------ PUBLIC HELPERS ------------------
@@ -174,11 +180,8 @@ public class Scoring extends Mechanism {
      * then drop into tag-based AUTO_ALIGN (and eventually SHOOTING if enabled).
      */
     public void requestAutoAlignAndShoot() {
-        if (mode == Mode.DRIVER) {
             mode = Mode.AUTO_ALIGN;
-            shootStage = ShootStage.NONE;
             aS = 0;
-        }
     }
 
     /**
@@ -240,22 +243,16 @@ public class Scoring extends Mechanism {
         switch (mode) {
             case DRIVER:
                 manualDrive(gamepad);
-                shooter.stop();
                 break;
 
            case GO_TO_FAR_TIP:
-               //manualDrive(gamepad);
+                manualDrive(gamepad);
                 goToFarTipStep();
                 break;
 
             case AUTO_ALIGN:
-               // manualDrive(gamepad);
-                autoAlignStep();
-                break;
-
-            case SHOOTING:
                 manualDrive(gamepad);
-                autoShootStep();
+                autoAlignStep();
                 break;
         }
     }
@@ -266,8 +263,14 @@ public class Scoring extends Mechanism {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN)) {
             requestAutoAlignAndShoot();
         }
+        else{
+            mode = Mode.DRIVER;
+        }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
             goToFarTipStep();
+        }
+        else{
+            mode = Mode.DRIVER;
         }
         if (GamepadStatic.isButtonPressed(gamepad,Controls.RESETHEADING)){
             drivetrain.resetIMU();
@@ -278,10 +281,11 @@ public class Scoring extends Mechanism {
         }
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
-            beginShooting();
+            shooting();
         }
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
-            shooter.shoot();
+        else{
+            shooter.stop();
+            transfer.stop();
         }
     }
 
@@ -290,7 +294,7 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
-            transfer.intake();
+            //transfer.intake();
         }
         else{
             intake.stop();
@@ -300,9 +304,9 @@ public class Scoring extends Mechanism {
             intake.outtake();
             transfer.backup();
         }
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.BACKUP)){
-            intake.intake();
-            transfer.intake();
+        else{
+            intake.stop();
+            transfer.stop();
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
             intake.stop();
@@ -310,6 +314,9 @@ public class Scoring extends Mechanism {
         }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.TRANSFER)){
             transfer.run();
+        }
+        else{
+            transfer.stop();
         }
     }
 
@@ -420,7 +427,7 @@ public class Scoring extends Mechanism {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
             if (aS > 0) {
-                beginShooting();
+                shooting();
             }
             else{
                 mode = Mode.DRIVER;
@@ -428,43 +435,19 @@ public class Scoring extends Mechanism {
         }
     }
 
-    private void beginShooting() {
+    private void shooting() {
         aS = 0;
-        mode = Mode.SHOOTING;
-        shootStage = ShootStage.SPINUP;
-        stageStartTime = opMode.getRuntime();   // make sure transfer is down while spinning up
-
-
-
-
         shooter.shoot();
-
-    }
-
-    private void autoShootStep() {
-        double now = opMode.getRuntime();
-        drivetrain.setDrivePower(new Pose2d(0, 0, 0)); // stay still while shooting
-
-        switch (shootStage) {
-            case SPINUP:
-                if (now - stageStartTime >= SHOOT_SPINUP_TIME) {
-                    // Start feeding balls
-                    transfer.run();
-                }
-                else{
-                    transfer.stop();
-                }
-                break;
-
-
-
-            case NONE:
-            default:
-                // Safety fallback
-                mode = Mode.DRIVER;
-                break;
+        if (shooter.atTarget()){
+            transfer.run();
         }
+        else{
+            transfer.stop();
+        }
+
     }
+
+
 
     // ------------------ UTIL ------------------
     private double clamp(double v, double min, double max) {

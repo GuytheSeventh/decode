@@ -18,16 +18,21 @@ import org.firstinspires.ftc.teamcode.util.PIDController;
 public class Shooter extends Mechanism {
     private PIDController controller;
 
-    private final DcMotorEx[] motors = new DcMotorEx[2];
-    private Servo servo;
+    public final DcMotorEx[] motors = new DcMotorEx[2];
 
     private VoltageSensor voltage;
-    private AnalogInput encoder;
 
-    public static double shootPwr = 8; // 0.18
-    public static double passPwr = 2;
-    public static double srvo = 0;
-    public static double pidtune = .1;
+    public static double TICKS_PER_REV = 28.0;   // goBILDA 6000 RPM (1:1)
+    public static double shootRPM = 4500;
+    public static double passiveRPM = 100;
+    public static double rpmTolerance = 200;
+    public static double shootFollowerPower = 1.0;
+    public static double passiveFollowerPower = 0.2;
+    public static double kP = 0.1;
+    public static double kI = 0.0;
+    public static double kD = 0.0;
+    public static double kF = 0.0;
+
     public static final double NOMINAL_VOLTAGE = 12.0;
 
     public Shooter(LinearOpMode opMode) { this.opMode = opMode; }
@@ -38,7 +43,6 @@ public class Shooter extends Mechanism {
        // servo = hwMap.get(Servo.class, "shooterServo");
 
         //servo.setPosition(srvo);
-        encoder = hwMap.g
         motors[0] = hwMap.get(DcMotorEx.class, "leftShoot");
         motors[1] = hwMap.get(DcMotorEx.class, "rightShoot");
 
@@ -52,42 +56,36 @@ public class Shooter extends Mechanism {
         motors[1].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
+        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
 
     }
 
     public void shoot() {
-        //double currentVoltage = voltage.getVoltage();
-       // if (currentVoltage <= 0) {
-        //    currentVoltage = NOMINAL_VOLTAGE;
-      //  }
-        motors[1].getVelocity();
-        double scale = NOMINAL_VOLTAGE / 12;
-        double compensatedPower = shootPwr * scale;
-        motors[0].setPower(compensatedPower);
-        motors[1].setPower(compensatedPower);
+        double ticksPerSecond = shootRPM * TICKS_PER_REV / 60.0;
+        motors[0].setVelocity(ticksPerSecond);
+        motors[1].setPower(shootFollowerPower);
     }
 
     public void passivePower() {
-        motors[0].setPower(passPwr);
-        motors[1].setPower(passPwr);
+        double ticksPerSecond = passiveRPM * TICKS_PER_REV / 60.0;
+        motors[0].setVelocity(ticksPerSecond);
+        motors[1].setPower(passiveFollowerPower);
     }
 
     public void stop(){
         motors[0].setPower(0);
         motors[1].setPower(0);
     }
+    public boolean atTarget(){
+        double currvol = motors[0].getVelocity();
+        double idealvol = shootRPM * TICKS_PER_REV / 60.0;
+        return Math.abs(currvol - idealvol) < rpmTolerance;
+    }
 
     public void adjustPower(){
 //gonna be the auto power adjust but limelight needs to be done (and tested) first
     }
-    public void setServo(double d){
-        servo.setPosition(d);
-    }
 
-    public void defaultServo(){
-        srvo = 0;
-        setServo(srvo);
-    }
 
 
 
