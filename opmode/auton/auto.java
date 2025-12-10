@@ -94,9 +94,6 @@ public class auto extends LinearOpMode {
     private Command shoot = () -> shooter.shoot();
     private Command passive = () -> shooter.passivePower();
     public double shootHood = .5;
-    private Command hoodUp = () -> shooter.setServo(shootHood);
-
-    private Command hoodReset = () -> shooter.defaultServo();
     private Command forwardP2P = () -> targetPoint = new Pose2d(targetPoint.getX() + 2,
             targetPoint.getY(), targetPoint.getHeading());
     private Command driveStop = () -> {

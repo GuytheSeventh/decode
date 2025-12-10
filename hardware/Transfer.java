@@ -19,7 +19,6 @@ public class Transfer extends Mechanism {
         private PIDController controller;
 
         private DcMotorEx motor;// = DcMotorEx;
-        private Servo servo;
 
         private VoltageSensor voltage;
 
@@ -28,7 +27,7 @@ public class Transfer extends Mechanism {
 
         public static double transferPwer = .9;
         public static double back =.5;
-        public static double intakePwer = .37;
+        public static double intakePwer = .7;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
@@ -63,22 +62,13 @@ public class Transfer extends Mechanism {
             motor.setPower(back);
         }
 
-        public void upPos(){
-            servo.setPosition(up);
-            run();
-        }
-        public void downPos(){
-            servo.setPosition(down);
-            stop();
-        }
-
 
         @Override
         public void loop(Gamepad gamepad) {
             if (gamepad.dpad_up) {
-                upPos();
+                run();
             } else{
-                downPos();
+                stop();
             }
         }
 

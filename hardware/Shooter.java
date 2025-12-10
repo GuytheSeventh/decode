@@ -22,27 +22,21 @@ public class Shooter extends Mechanism {
 
     private VoltageSensor voltage;
 
-    public static double TICKS_PER_REV = 28.0;   // goBILDA 6000 RPM (1:1)
-    public static double shootRPM = 4500;
+    public static double TICKS_PER_REV;   // goBILDA 6000 RPM (1:1)
+    public static double farShootRPM = 5500;
+    public static double closeShootRPM = 4500;
     public static double passiveRPM = 100;
     public static double rpmTolerance = 200;
-    public static double shootFollowerPower = 1.0;
-    public static double passiveFollowerPower = 0.2;
-    public static double kP = 0.1;
+    public static double kP = 4;
     public static double kI = 0.0;
     public static double kD = 0.0;
     public static double kF = 0.0;
-
-    public static final double NOMINAL_VOLTAGE = 12.0;
+    private boolean far = true;
 
     public Shooter(LinearOpMode opMode) { this.opMode = opMode; }
 
     @Override
     public void init(HardwareMap hwMap) {
-        //voltage = hwMap.voltageSensor.iterator().next();
-       // servo = hwMap.get(Servo.class, "shooterServo");
-
-        //servo.setPosition(srvo);
         motors[0] = hwMap.get(DcMotorEx.class, "leftShoot");
         motors[1] = hwMap.get(DcMotorEx.class, "rightShoot");
 
@@ -50,40 +44,61 @@ public class Shooter extends Mechanism {
         motors[1].setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         motors[0].setMode(DcMotorEx.RunMode.RUN_USING_ENCODER); // might be wrong RunMode
-        motors[1].setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motors[1].setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         motors[0].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motors[1].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
         motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        motors[1].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
+
 
     }
 
     public void shoot() {
-        double ticksPerSecond = shootRPM * TICKS_PER_REV / 60.0;
-        motors[0].setVelocity(ticksPerSecond);
-        motors[1].setPower(shootFollowerPower);
+        if (far) {
+            double ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
+            motors[0].setVelocity(ticksPerSecond);
+            motors[1].setVelocity(ticksPerSecond);
+        }
+        else{
+            double ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
+            motors[0].setVelocity(ticksPerSecond);
+            motors[1].setVelocity(ticksPerSecond);
+        }
+    }
+    public void unshoot(){
+        double ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
+        motors[0].setVelocity(-ticksPerSecond);
+        motors[1].setVelocity(-ticksPerSecond);
     }
 
     public void passivePower() {
         double ticksPerSecond = passiveRPM * TICKS_PER_REV / 60.0;
         motors[0].setVelocity(ticksPerSecond);
-        motors[1].setPower(passiveFollowerPower);
+        motors[1].setVelocity(ticksPerSecond);
     }
 
     public void stop(){
-        motors[0].setPower(0);
-        motors[1].setPower(0);
+        motors[0].setVelocity(0);
+        motors[1].setVelocity(0);
     }
     public boolean atTarget(){
+        double shootRPM;
+        if (far){
+            shootRPM = farShootRPM;
+        }
+        else{
+            shootRPM = closeShootRPM;
+        }
         double currvol = motors[0].getVelocity();
         double idealvol = shootRPM * TICKS_PER_REV / 60.0;
         return Math.abs(currvol - idealvol) < rpmTolerance;
     }
-
-    public void adjustPower(){
-//gonna be the auto power adjust but limelight needs to be done (and tested) first
+    public void setFar(boolean far){
+        this.far = far;
     }
 
 

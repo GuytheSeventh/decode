@@ -32,27 +32,16 @@ public class Scoring extends Mechanism {
     private final Intake intake;
     private final Transfer transfer;
     private final Shooter shooter;
-    IMU imu;
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
         DRIVER,        // normal tele-op driving
         GO_TO_FAR_TIP, // drive (global) to far shooting zone tip
         AUTO_ALIGN,    // using Limelight to center on tag
-        SHOOTING       // shooter spinup + feeding
-    }
-
-    private enum ShootStage {
-        NONE,
-        SPINUP,
-        BALL1,
-        BALL2,
-        BALL3,
-        FEEDING
+        GO_TO_CLOSE_TIP       // shooter spinup + feeding
     }
 
     private Mode mode = Mode.DRIVER;
-    private ShootStage shootStage = ShootStage.NONE;
 
     // timing for shooting
     private double stageStartTime = 0.0;
@@ -76,16 +65,15 @@ public class Scoring extends Mechanism {
     public static double Y_TOLERANCE = 0.05;          // forward error (m)
     public static double YAW_TOLERANCE_DEG = 2.0;     // angle error (deg)
 
-    // Shooter timing
-    public static double SHOOT_SPINUP_TIME = 2;     // seconds to spin up shooter
-    public static double SHOOT_FEED_TIME = 1;       // seconds to feed balls
-    public static double TRANSFER_PWR = .8;
 
     // -------- Far shooting zone target pose (RoadRunner units: inches, radians) --------
     // Fill these from real field measurements (pose of the tip of the far shooting zone)
     public static double FAR_TIP_X_INCHES = 0.0;       // TODO: measure & set
     public static double FAR_TIP_Y_INCHES = 0.0;       // TODO: measure & set
     public static double FAR_TIP_HEADING_DEG = 0.0;    // TODO: measure & set
+    public static double CLOSE_TIP_X_INCHES = 0.0;       // TODO: measure & set
+    public static double CLOSE_TIP_Y_INCHES = 0.0;       // TODO: measure & set
+    public static double CLOSE_TIP_HEADING_DEG = 0.0;    // TODO: measure & set
 
     // Tolerances for "we've reached the far tip pose"
     public static double FAR_POS_TOL_INCHES = 2.0;     // how close in XY before we switch to AUTO_ALIGN
@@ -94,14 +82,16 @@ public class Scoring extends Mechanism {
     // P gains for global approach (toward FAR_TIP pose)
     public static double FAR_KP_TRANSLATION = 0.03;    // drive power per inch of error
     public static double FAR_KP_ROTATION = 0.04;       // drive power per rad of error
+    public static double CLOSE_POS_TOL_INCHES = 2.0;     // how close in XY before we switch to AUTO_ALIGN
+    public static double CLOSE_HEADING_TOL_DEG = 3.0;    // heading tolerance at far tip
+
+    // P gains for global approach (toward FAR_TIP pose)
+    public static double CLOSE_KP_TRANSLATION = 0.03;    // drive power per inch of error
+    public static double CLOSE_KP_ROTATION = 0.04;
 
     private int aS = 0;
     private boolean Red;
     private int id;
-
-    // ------------------ BUTTON EDGE FLAGS ------------------
-    private boolean shootButtonLatched = false;
-    private boolean abortButtonLatched = false;
 
     // ------------------ CONSTRUCTOR ------------------
     public Scoring(LinearOpMode opMode) {
@@ -152,7 +142,6 @@ public class Scoring extends Mechanism {
     @Override
     public void telemetry(Telemetry telemetry) {
         telemetry.addData("Mode", mode);
-        telemetry.addData("Shoot Stage", shootStage);
 
         // Show basic Limelight info (last best target)
         Limelight.Location loc = limelight.getBest();
@@ -191,23 +180,19 @@ public class Scoring extends Mechanism {
         requestAutoAlignAndShoot();
     }
 
-    /**
-     * Abort any auto-align / shooting and return to driver control.
-     */
-    private void abortAuto() {
-        mode = Mode.DRIVER;
-        shootStage = ShootStage.NONE;
-        drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-        shooter.stop();
-        intake.stop();
-        transfer.stop();
-    }
 
     private Pose2d getFarTipPose() {
         return new Pose2d(
                 FAR_TIP_X_INCHES,
                 FAR_TIP_Y_INCHES,
                 Math.toRadians(FAR_TIP_HEADING_DEG)
+        );
+    }
+    private Pose2d getCloseTipPose() {
+        return new Pose2d(
+                CLOSE_TIP_X_INCHES,
+                CLOSE_TIP_Y_INCHES,
+                Math.toRadians(CLOSE_TIP_HEADING_DEG)
         );
     }
 
@@ -249,6 +234,10 @@ public class Scoring extends Mechanism {
                 manualDrive(gamepad);
                 goToFarTipStep();
                 break;
+            case GO_TO_CLOSE_TIP:
+                manualDrive(gamepad);
+                goToCloseTipStep();
+                break;
 
             case AUTO_ALIGN:
                 manualDrive(gamepad);
@@ -261,7 +250,7 @@ public class Scoring extends Mechanism {
 
     private void handleButtons(Gamepad gamepad) {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN)) {
-            mode = Mode.AUTO_ALIGN;
+            mode = Mode.GO_TO_CLOSE_TIP;
         }
         else{
             mode = Mode.DRIVER;
@@ -276,16 +265,24 @@ public class Scoring extends Mechanism {
             drivetrain.resetIMU();
         }
 
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.ABORT)) {
-            abortAuto();
-        }
-
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.SHOOT)){
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.FARSHOOT)){
+            shooter.setFar(true);
             shooting();
         }
-        else{
+        else if (GamepadStatic.isButtonPressed(gamepad, Controls.CLOSESHOOT)){
+            shooter.setFar(false);
+            shooting();
+        }
+        else if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
+            shooter.unshoot();
+            transfer.backup();
+        }
+        else {
             shooter.stop();
             transfer.stop();
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
+            shooter.stop();
         }
     }
 
@@ -294,7 +291,7 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
-            //transfer.intake();
+            transfer.intake();
         }
         else{
             intake.stop();
@@ -308,12 +305,14 @@ public class Scoring extends Mechanism {
             intake.stop();
             transfer.stop();
         }
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
-            intake.stop();
-            transfer.stop();
-        }
         if (GamepadStatic.isButtonPressed(gamepad, Controls.TRANSFER)){
             transfer.run();
+        }
+        else{
+            transfer.stop();
+        }
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.UNTRANSFER)){
+            transfer.backup();
         }
         else{
             transfer.stop();
@@ -325,7 +324,7 @@ public class Scoring extends Mechanism {
     private void manualDrive(Gamepad gamepad) {
         double y = -gamepad.left_stick_y; // Remember, this is reversed!
         double x = gamepad.left_stick_x * 1.1; // Counteract imperfect strafing
-        double rx = gamepad.right_stick_x;
+        double rx = -gamepad.right_stick_x;
 
         // This button choice was made so that it is hard to hit on accident,
         // it can be freely changed based on preference.
@@ -355,6 +354,7 @@ public class Scoring extends Mechanism {
      * Once we are close enough to FAR_TIP pose, we switch to AUTO_ALIGN for fine tag-based alignment.
      */
     private void goToFarTipStep() {
+        shooter.setFar(true);
         aS = 1;
         Pose2d pose = drivetrain.getPoseEstimate();
         Pose2d target = getFarTipPose();
@@ -394,6 +394,47 @@ public class Scoring extends Mechanism {
 
         drivetrain.setDrivePower(new Pose2d(forwardCmd, strafeCmd, turnCmd));
     }
+    private void goToCloseTipStep() {
+        shooter.setFar(false);
+        aS = 1;
+        Pose2d pose = drivetrain.getPoseEstimate();
+        Pose2d target = getCloseTipPose();
+
+        double dx = target.getX() - pose.getX();
+        double dy = target.getY() - pose.getY();
+        double distance = Math.hypot(dx, dy);
+
+        double targetHeading = target.getHeading();
+        double headingError = angleWrap(targetHeading - pose.getHeading());
+
+        boolean atPosition = distance < CLOSE_POS_TOL_INCHES;
+        boolean atHeading = Math.abs(Math.toDegrees(headingError)) < CLOSE_HEADING_TOL_DEG;
+
+        if (atPosition && atHeading) {
+            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
+            // Hand off to Limelight-based fine alignment
+            mode = Mode.AUTO_ALIGN;
+            return;
+        }
+
+        // Convert field-space error (dx, dy) into robot-centric (forward, strafe)
+        double heading = pose.getHeading();
+        double cosH = Math.cos(-heading);
+        double sinH = Math.sin(-heading);
+
+        double robotXError = dx * cosH - dy * sinH; // forward
+        double robotYError = dx * sinH + dy * cosH; // strafe
+
+        double forwardCmd = CLOSE_KP_TRANSLATION * robotXError;
+        double strafeCmd  = CLOSE_KP_TRANSLATION * robotYError;
+        double turnCmd    = CLOSE_KP_ROTATION * headingError;
+
+        forwardCmd = clamp(forwardCmd, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        strafeCmd  = clamp(strafeCmd,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        turnCmd    = clamp(turnCmd,    -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+
+        drivetrain.setDrivePower(new Pose2d(forwardCmd, strafeCmd, turnCmd));
+    }
 
     /**
      * Local tag-relative alignment using Limelight helper.
@@ -426,12 +467,8 @@ public class Scoring extends Mechanism {
         if (aligned) {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-            if (aS > 0) {
-                shooting();
-            }
-            else{
-                mode = Mode.DRIVER;
-            }
+            shooting();
+
         }
     }
 
