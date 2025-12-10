@@ -22,7 +22,7 @@ public class Intake extends Mechanism {
     private DcMotor intake;
     private PIDController controller;
 
-    public static double POWER = 1.1;
+    public static double POWER = 1;
 
     public Intake(LinearOpMode opMode) {
         this.opMode = opMode;
@@ -51,9 +51,8 @@ public class Intake extends Mechanism {
     public void loop(Gamepad gamepad) {
         if (gamepad.right_trigger > 0) {
             intake();
-        } /*else if (gamepad.left_trigger > 0) {
-            outtake();
-        }*/ else {
+        }
+        else {
             stop();
         }
     }

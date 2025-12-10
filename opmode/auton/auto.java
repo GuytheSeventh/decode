@@ -93,14 +93,12 @@ public class auto extends LinearOpMode {
     private Command transferStop = () -> transfer.stop();
     private Command shoot = () -> shooter.shoot();
     private Command passive = () -> shooter.passivePower();
-    public double shootHood = .5;
-    private Command forwardP2P = () -> targetPoint = new Pose2d(targetPoint.getX() + 2,
+    private Command forwardP2P = () -> targetPoint = new Pose2d(targetPoint.getX(),
             targetPoint.getY(), targetPoint.getHeading());
     private Command driveStop = () -> {
         targetPoint = null;
         drive.setWeightedDrivePower(new Pose2d(0, 0, 0));
     };
-
     private CommandSequence preload = new CommandSequence()
             .addCommand(commandBusyTrue)
             .addCommand(preloadCommand)
@@ -108,13 +106,11 @@ public class auto extends LinearOpMode {
             .addCommand(back2wallCommand)
             .addCommand(commandBusyFalse)
             .build();
-
     private CommandSequence doNothing = new CommandSequence().build();
     private AutoCommandMachine commandMachine = new AutoCommandMachine()
             .addCommandSequence(preload)
             .addCommandSequence(doNothing)
             .build();
-
     @Override
     public void runOpMode() throws InterruptedException {
         VoltageSensor voltage = hardwareMap.voltageSensor.iterator().next();
@@ -172,7 +168,6 @@ public class auto extends LinearOpMode {
             telemetry.addData("drive y", drive.getPoseEstimate().getY());
             telemetry.update();
         }
-
         limelight.stop();
         Thread.sleep(500);
     }
