@@ -23,6 +23,8 @@ public class Intake extends Mechanism {
     private PIDController controller;
 
     public static double POWER = 1;
+    public static double OUT = .2;
+    public static double initialD = .2;
 
     public Intake(LinearOpMode opMode) {
         this.opMode = opMode;
@@ -32,7 +34,7 @@ public class Intake extends Mechanism {
     public void init(HardwareMap hwMap) {
 
         intake = hwMap.get(DcMotor.class, "intake");
-        intake.setDirection(DcMotorSimple.Direction.REVERSE);
+        intake.setDirection(DcMotorSimple.Direction.FORWARD);
     }
 
     public void intake() {
@@ -44,7 +46,16 @@ public class Intake extends Mechanism {
     }
 
     public void outtake() {
-        intake.setPower(-POWER);
+        intake.setPower(-OUT);
+    }
+    public void setOut(double d){
+        OUT = d;
+    }
+    public void resetOut(){
+        OUT = initialD;
+    }
+    public double getOut(){
+        return OUT;
     }
 
     @Override

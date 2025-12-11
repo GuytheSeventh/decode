@@ -19,18 +19,18 @@ public class Shooter extends Mechanism {
 
     //private VoltageSensor voltage;
 
-    public static double TICKS_PER_REV;
-    public static double farShootRPM = 4500;
-    public static double closeShootRPM = 3000;
-    public static double farPwr = .8;
-    public static double closePwr = .6;
+    public static double TICKS_PER_REV = 100;
+    public static double farShootRPM = 6000;
+    public static double closeShootRPM = 5000;
+    public static double farPwr = .9;
+    public static double closePwr = .8;
     public static double passiveRPM = 500;
     public static double passPwr = .15;
     public static double rpmTolerance = 200;
-    public static double kP = 4;
+    public static double kP = 2.0;
     public static double kI = 0.0;
-    public static double kD = 0.0;
-    public static double kF = 0.0;
+    public static double kD = 0.5;
+    public static double kF = 0.007;
     private boolean far = true;
 
     public Shooter(LinearOpMode opMode) { this.opMode = opMode; }
@@ -58,6 +58,7 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
+        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
         if (far) {
             double ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
             motors[0].setVelocity(ticksPerSecond);

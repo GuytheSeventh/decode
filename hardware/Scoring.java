@@ -87,6 +87,7 @@ public class Scoring extends Mechanism {
     public static double CLOSE_KP_ROTATION = 0.04;
     private boolean Red;
     private int id;
+    private boolean shoot = true;
 
     // ------------------ CONSTRUCTOR ------------------
     public Scoring(LinearOpMode opMode) {
@@ -131,10 +132,10 @@ public class Scoring extends Mechanism {
         transfer.init(hwMap);
         shooter.init(hwMap);
         if (Red){
-            drivetrain.setPoseEstimate(new Pose2d(-24,-72,0));
+            drivetrain.setPoseEstimate(new Pose2d(24,-72,0));
         }
         else{
-            drivetrain.setPoseEstimate(new Pose2d(24,-72,0));
+            drivetrain.setPoseEstimate(new Pose2d(-24,-72,0));
         }
     }
 
@@ -156,8 +157,11 @@ public class Scoring extends Mechanism {
         telemetry.addData("RR Pose H (deg)", Math.toDegrees(pose.getHeading()));
 
         double currentTicksPerSecond = shooter.motors[0].getVelocity();
-        double currentRpm = currentTicksPerSecond * 60.0 / Shooter.TICKS_PER_REV;
+        double currentRpm = currentTicksPerSecond * 60.0 / 2786;
         telemetry.addData("Shooter RPM", currentRpm);
+        telemetry.addData("Ideal Close RPM", Shooter.closeShootRPM);
+        telemetry.addData("Ideal Far RPM", Shooter.farShootRPM);
+
 
 
     }
@@ -270,23 +274,28 @@ public class Scoring extends Mechanism {
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.FARSHOOT)){
             shooter.setFar(true);
-            shooting(true);
+            shoot = true;
+            transfer.run();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.CLOSESHOOT)){
             shooter.setFar(false);
-            shooting(true);
+            shoot = true;
+            transfer.run();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
             shooter.unshoot();
-            shooting(false);
             transfer.backup();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
-            shooter.stop();
+            shoot = false;
         }
         else {
-            shooter.shoot();
-            shooting(false);
+            if (shoot) {
+                shooter.shoot();
+            }
+            else{
+                shooter.stop();
+            }
         }
     }
 
@@ -298,6 +307,7 @@ public class Scoring extends Mechanism {
             transfer.intake();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
+            intake.setOut(intake.getOut() + .1);
             intake.outtake();
             transfer.backup();
         }
@@ -308,8 +318,17 @@ public class Scoring extends Mechanism {
             transfer.backup();
         }
         else{
+            intake.resetOut();
             intake.stop();
-            transfer.stop();
+            if (!(GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.TRANSFER)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.OUTTAKE)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.UNTRANSFER)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.FARSHOOT)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.CLOSESHOOT)||
+                    GamepadStatic.isButtonPressed(gamepad,Controls.UNSHOOT))){
+                transfer.stop();
+            }
         }
     }
 
@@ -461,20 +480,7 @@ public class Scoring extends Mechanism {
         if (aligned) {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
             drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-            shooting(true);
-        }
-    }
-
-    private void shooting(boolean shoot) {
-        if (shoot) {
-            if (shooter.atTarget()) {
-                transfer.run();
-            } else {
-                transfer.stop();
-            }
-        }
-        else{
-            transfer.stop();
+            transfer.run();
         }
     }
 
