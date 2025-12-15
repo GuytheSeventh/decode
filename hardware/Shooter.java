@@ -8,12 +8,13 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.util.Mechanism;
-import org.firstinspires.ftc.teamcode.util.PIDController;
+import org.firstinspires.ftc.teamcode.util.PIDFController;
 //maybe use external PID and calculate power
 
 @Config
 public class Shooter extends Mechanism {
     //private PIDController controller;
+    PIDFController pidf = new PIDFController(kP, kI, kD, kF);
 
     public final DcMotorEx[] motors = new DcMotorEx[2];
 
@@ -32,6 +33,7 @@ public class Shooter extends Mechanism {
     public static double kD = 0.5;
     public static double kF = 0.007;
     private boolean far = true;
+    private double ticksPerSecond;
 
     public Shooter(LinearOpMode opMode) { this.opMode = opMode; }
 
@@ -60,13 +62,13 @@ public class Shooter extends Mechanism {
     public void shoot() {
         motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
         if (far) {
-            double ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
+            ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
             motors[0].setVelocity(ticksPerSecond);
             //motors[1].setVelocity(ticksPerSecond);
             motors[1].setPower(farPwr);
         }
         else{
-            double ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
+            ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
             motors[0].setVelocity(ticksPerSecond);
             //motors[1].setVelocity(ticksPerSecond);
             motors[1].setPower(closePwr);
@@ -114,8 +116,14 @@ public class Shooter extends Mechanism {
     public void loop(Gamepad gamepad) {
         if (gamepad.dpad_up) {
             shoot();
+            double currentTicks = motors[0].getVelocity();
+            double output = pidf.calculate(currentTicks, ticksPerSecond);
+            output = Math.max(-1, Math.min(1, output));
+            motors[1].setPower(output);
+
         } else{
             passivePower();
+            pidf.clearTotalError();
         }
     }
 
