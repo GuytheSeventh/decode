@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.util.PIDFController;
 @Config
 public class Shooter extends Mechanism {
     //private PIDController controller;
-    PIDFController pidf = new PIDFController(kP, kI, kD, kF);
+    PIDFController pidf;
 
     public final DcMotorEx[] motors = new DcMotorEx[2];
 
@@ -31,7 +31,7 @@ public class Shooter extends Mechanism {
     public static double kP = 2.0;
     public static double kI = 0.0;
     public static double kD = 0.5;
-    public static double kF = 0.007;
+    public static double kF = 0.00008;
     private boolean far = true;
     private double ticksPerSecond;
 
@@ -39,6 +39,7 @@ public class Shooter extends Mechanism {
 
     @Override
     public void init(HardwareMap hwMap) {
+        pidf = new PIDFController(kP, kI, kD, kF);
         motors[0] = hwMap.get(DcMotorEx.class, "leftShoot");
         motors[1] = hwMap.get(DcMotorEx.class, "rightShoot");
 
@@ -52,57 +53,50 @@ public class Shooter extends Mechanism {
         motors[1].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
-        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
-        //motors[1].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        pidf.setFeedForward(PIDFController.FeedForward.LINEAR);
         TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
 
 
     }
 
     public void shoot() {
-        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        pidf.setPIDF(kP, kI, kD, kF);
         if (far) {
             ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
-            motors[0].setVelocity(ticksPerSecond);
-            //motors[1].setVelocity(ticksPerSecond);
-            motors[1].setPower(farPwr);
+            double currentTicks = motors[0].getVelocity();
+            double output = pidf.calculate(currentTicks, ticksPerSecond);
+            output = Math.max(-1, Math.min(1, output));
+            motors[1].setPower(output);
+            motors[0].setPower(output);
         }
         else{
             ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
-            motors[0].setVelocity(ticksPerSecond);
-            //motors[1].setVelocity(ticksPerSecond);
-            motors[1].setPower(closePwr);
+            double currentTicks = motors[0].getVelocity();
+            double output = pidf.calculate(currentTicks, ticksPerSecond);
+            output = Math.max(-1, Math.min(1, output));
+            motors[1].setPower(output);
+            motors[0].setPower(output);
         }
     }
     public void unshoot(){
-        double ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
-        motors[0].setVelocity(-ticksPerSecond);
+        motors[0].setPower(-closePwr);
         //motors[1].setVelocity(-ticksPerSecond);
         motors[1].setPower(-closePwr);
     }
 
     public void passivePower() {
-        double ticksPerSecond = passiveRPM * TICKS_PER_REV / 60.0;
-        motors[0].setVelocity(ticksPerSecond);
+        motors[0].setPower(passPwr);
         //motors[1].setVelocity(ticksPerSecond);
         motors[1].setPower(passPwr);
     }
 
     public void stop(){
-        motors[0].setVelocity(0);
-        //motors[1].setVelocity(0);
+        motors[0].setPower(0);
         motors[1].setPower(0);
     }
     public boolean atTarget(){
-        double shootRPM;
-        if (far){
-            shootRPM = farShootRPM;
-        }
-        else{
-            shootRPM = closeShootRPM;
-        }
         double currvol = motors[0].getVelocity();
-        double idealvol = shootRPM * TICKS_PER_REV / 60.0;
+        double idealvol = (!far ? closeShootRPM : farShootRPM) * TICKS_PER_REV / 60.0;
         return Math.abs(currvol - idealvol) < rpmTolerance;
     }
     public void setFar(boolean far){
@@ -116,10 +110,6 @@ public class Shooter extends Mechanism {
     public void loop(Gamepad gamepad) {
         if (gamepad.dpad_up) {
             shoot();
-            double currentTicks = motors[0].getVelocity();
-            double output = pidf.calculate(currentTicks, ticksPerSecond);
-            output = Math.max(-1, Math.min(1, output));
-            motors[1].setPower(output);
 
         } else{
             passivePower();
