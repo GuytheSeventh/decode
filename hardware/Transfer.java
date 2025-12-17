@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.util.Mechanism;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 
 import org.firstinspires.ftc.teamcode.util.PIDController;
@@ -21,18 +23,18 @@ public class Transfer extends Mechanism {
         private DcMotorEx motor;// = DcMotorEx;
 
         private VoltageSensor voltage;
-
-        public double down = 0.89; // 0.18
-        public double up = 0.18;
+        private DistanceSensor distance;
 
         public static double transferPwer = 1;
         public static double back = -transferPwer;
         public static double intakePwer = .5;
+        public static double dist = 20;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
         @Override
         public void init(HardwareMap hwMap) {
+            distance = hwMap.get(DistanceSensor.class, "distance"); //ic2bus 3
            // voltage = hwMap.voltageSensor.iterator().next();
             motor = hwMap.get(DcMotorEx.class, "transfer");
            // servo = hwMap.get(Servo.class, "transferServo");
@@ -60,6 +62,9 @@ public class Transfer extends Mechanism {
         }
         public void backup(){
             motor.setPower(back);
+        }
+        public boolean hasBall(){
+            return distance.getDistance(DistanceUnit.MM) < dist;
         }
 
 

@@ -304,7 +304,12 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
-            transfer.intake();
+            if(!transfer.hasBall()) {
+                transfer.intake();
+            }
+            else{
+                transfer.stop();
+            }
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
             intake.setOut(intake.getOut() + .1);
