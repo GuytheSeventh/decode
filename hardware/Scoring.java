@@ -133,6 +133,7 @@ public class Scoring extends Mechanism {
         shooter.init(hwMap);
         if (Red){
             drivetrain.setPoseEstimate(new Pose2d(24,-72,0));
+
         }
         else{
             drivetrain.setPoseEstimate(new Pose2d(-24,-72,0));

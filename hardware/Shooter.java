@@ -20,7 +20,7 @@ public class Shooter extends Mechanism {
 
     //private VoltageSensor voltage;
 
-    public static double TICKS_PER_REV = 100;
+    public static double TICKS_PER_REV = 28;
     public static double farShootRPM = 6000;
     public static double closeShootRPM = 5000;
     public static double farPwr = .9;
@@ -31,7 +31,7 @@ public class Shooter extends Mechanism {
     public static double kP = 2.0;
     public static double kI = 0.0;
     public static double kD = 0.5;
-    public static double kF = 0.00008;
+    public static double kF = 0;//0.00008;
     private boolean far = true;
     private double ticksPerSecond;
 
@@ -54,7 +54,8 @@ public class Shooter extends Mechanism {
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
         pidf.setFeedForward(PIDFController.FeedForward.LINEAR);
-        TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
+       // TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
+        TICKS_PER_REV = 28;
 
 
     }
