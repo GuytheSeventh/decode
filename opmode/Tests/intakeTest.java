@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmode.Tests;
 
+import org.firstinspires.ftc.robotcore.internal.network.RobotCoreCommandList;
+import org.firstinspires.ftc.teamcode.hardware.Shooter;
 import org.firstinspires.ftc.teamcode.hardware.Transfer;
 import org.firstinspires.ftc.teamcode.hardware.Intake;
 
@@ -24,12 +26,14 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 public class intakeTest extends LinearOpMode {
     Transfer transfer = new Transfer(this);
     Intake intake = new Intake(this);
-
+    Shooter shooter = new Shooter(this);
     MultipleTelemetry telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
     Gamepad gamepad = gamepad1;
+    boolean shoot = true;
     public void runOpMode() throws InterruptedException {
         transfer.init(hardwareMap);
         intake.init(hardwareMap);
+        shooter.init(hardwareMap);
 
         waitForStart();
 
@@ -64,6 +68,31 @@ public class intakeTest extends LinearOpMode {
                         GamepadStatic.isButtonPressed(gamepad1,Controls.OUTTAKE)||
                         GamepadStatic.isButtonPressed(gamepad1,Controls.UNTRANSFER))){
                     transfer.stop();
+                }
+            }
+            if (GamepadStatic.isButtonPressed(gamepad, Controls.FARSHOOT)){
+                shooter.setFar(true);
+                shoot = true;
+                transfer.run();
+            }
+            else if (GamepadStatic.isButtonPressed(gamepad, Controls.CLOSESHOOT)){
+                shooter.setFar(false);
+                shoot = true;
+                transfer.run();
+            }
+            else if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
+                shooter.unshoot();
+                transfer.backup();
+            }
+            else if (GamepadStatic.isButtonPressed(gamepad, Controls.STOP)){
+                shoot = false;
+            }
+            else {
+                if (shoot) {
+                    shooter.shoot();
+                }
+                else{
+                    shooter.stop();
                 }
             }
         }

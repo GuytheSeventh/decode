@@ -28,6 +28,7 @@ public class BlueMain extends LinearOpMode {
         while (opModeIsActive()) {
             robot.loop(gamepad1);
             robot.telemetry(telemetry);
+            telemetry.update();
         }
     }
 }

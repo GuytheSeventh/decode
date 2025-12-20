@@ -88,6 +88,7 @@ public class Scoring extends Mechanism {
     private boolean Red;
     private int id;
     private boolean shoot = true;
+    private double headingOffset;
 
     // ------------------ CONSTRUCTOR ------------------
     public Scoring(LinearOpMode opMode) {
@@ -138,6 +139,8 @@ public class Scoring extends Mechanism {
         else{
             drivetrain.setPoseEstimate(new Pose2d(-24,-72,0));
         }
+        drivetrain.update();
+        headingOffset = drivetrain.getHeading();
     }
 
     // ------------------ TELEMETRY ------------------
@@ -234,22 +237,14 @@ public class Scoring extends Mechanism {
                 manualDrive(gamepad);
                 break;
            case GO_TO_FAR_TIP:
-                if(!manualDrive(gamepad)) {
-                    goToFarTipStep();
-                }
-                else{
-                    mode = Mode.DRIVER;
-                }
+                manualDrive(gamepad);
+                goToFarTipStep();
                 //choose one; if any stick is used,
                 //return to driver
                 break;
             case GO_TO_CLOSE_TIP:
-                if(!manualDrive(gamepad)) {
-                    goToCloseTipStep();
-                }
-                else{
-                    mode = Mode.DRIVER;
-                }
+                manualDrive(gamepad);
+                goToCloseTipStep();
                 break;
             case AUTO_ALIGN:
                 manualDrive(gamepad);
@@ -305,11 +300,8 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
-            if(!transfer.hasBall()) {
+            if(transfer.hasBall()) {
                 transfer.intake();
-            }
-            else{
-                transfer.stop();
             }
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
@@ -340,33 +332,29 @@ public class Scoring extends Mechanism {
 
     // ------------------ DRIVING ------------------
 
-    private boolean manualDrive(Gamepad gamepad) {
-        double y = -gamepad.left_stick_y; // Remember, this is reversed!
-        double x = gamepad.left_stick_x * 1.1; // Counteract imperfect strafing
-        double rx = -gamepad.right_stick_x;
+    private void manualDrive(Gamepad gamepad) {
+        double heading = drivetrain.getHeading() - headingOffset; // radians :contentReference[oaicite:8]{index=8}
 
-        // This button choice was made so that it is hard to hit on accident,
-        // it can be freely changed based on preference.
-        // The equivalent button is start on Xbox-style controllers.
-        double botHeading = drivetrain.getHeading();
 
-        // Rotate the movement direction counter to the bot's rotation
-        double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
-        double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+        // --- 2) Read sticks as FIELD commands ---
+        // Convention: left stick up = field “north” (forward)
+        double y = -gamepad.left_stick_y; // forward
+        double x =  gamepad.left_stick_x; // strafe right
+        double rx = -gamepad.right_stick_x; // turn
 
-        // Denominator is the largest motor power (absolute value) or 1
-        // This ensures all the powers maintain the same ratio, but only when
-        // at least one is out of the range [-1, 1]
-        double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-        double frontLeftPower = (rotY + rotX + rx) / denominator;
-        double backLeftPower = (rotY - rotX + rx) / denominator;
-        double frontRightPower = (rotY - rotX - rx) / denominator;
-        double backRightPower = (rotY + rotX - rx) / denominator;
-        if (Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx) > 0){
-            drivetrain.setMotorPowers(frontLeftPower, backLeftPower, backRightPower, frontRightPower);
-            return true;
-        }
-        return false;
+        // --- 3) Rotate field vector into robot frame ---
+        double rotX = x * Math.cos(-heading) - y * Math.sin(-heading);
+        double rotY = x * Math.sin(-heading) + y * Math.cos(-heading);
+
+        // --- 4) Standard mecanum mixing ---
+        double denom = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
+
+        double flP = (rotY + rotX + rx) / denom;
+        double blP = (rotY - rotX + rx) / denom;
+        double frP = (rotY - rotX - rx) / denom;
+        double brP = (rotY + rotX - rx) / denom;
+
+        drivetrain.setMotorPowers(flP, blP, frP, brP);
 
 
     }

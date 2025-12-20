@@ -48,6 +48,7 @@ public class Transfer extends Mechanism {
             motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
             motor.setDirection(DcMotorEx.Direction.REVERSE);
+            distance.setMode(DigitalChannel.Mode.INPUT);
 
         }
 
