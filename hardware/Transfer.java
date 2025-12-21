@@ -1,4 +1,5 @@
 
+
 package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -10,74 +11,66 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.util.Mechanism;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 
 
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
 @Config
 public class Transfer extends Mechanism {
-        private PIDController controller;
+    private PIDController controller;
 
-        private DcMotorEx motor;// = DcMotorEx;
+    private DcMotorEx motor;// = DcMotorEx;
 
-        private VoltageSensor voltage;
-        //private DigitalChannel distance;
+    private VoltageSensor voltage;
 
-        public static double transferPwer = 1;
-        public static double back = -transferPwer;
-        public static double intakePwer = .5;
-        public static double dist = 10;
+    public double down = 0.89; // 0.18
+    public double up = 0.18;
 
-        public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
+    public static double transferPwer = .9;
+    public static double back = -transferPwer;
+    public static double intakePwer = .7;
 
-        @Override
-        public void init(HardwareMap hwMap) {
-            //distance = hwMap.get(DigitalChannel.class, "distance"); //ic2bus 3
-           // voltage = hwMap.voltageSensor.iterator().next();
-            motor = hwMap.get(DcMotorEx.class, "transfer");
-           // servo = hwMap.get(Servo.class, "transferServo");
-           // servo.setPosition(down);
+    public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
-            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    @Override
+    public void init(HardwareMap hwMap) {
+        // voltage = hwMap.voltageSensor.iterator().next();
+        motor = hwMap.get(DcMotorEx.class, "transfer");
+        // servo = hwMap.get(Servo.class, "transferServo");
+        // servo.setPosition(down);
 
-            motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
+        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        motor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER); // might be wrong RunMode
 
-            motor.setDirection(DcMotorEx.Direction.REVERSE);
-           // distance.setMode(DigitalChannel.Mode.INPUT);
+        motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
-        }
-
-        public void run() {
-            motor.setPower(transferPwer);
-        }
-        public void intake(){
-            motor.setPower(intakePwer);
-        }
-
-        public void stop() {
-            motor.setPower(0);
-        }
-        public void backup(){
-            motor.setPower(back);
-        }
-
-       // public boolean hasBall(){
-      //      return distance.getState();
-       // }
-
-
-        @Override
-        public void loop(Gamepad gamepad) {
-            if (gamepad.dpad_up) {
-                run();
-            } else{
-                stop();
-            }
-        }
+        motor.setDirection(DcMotorEx.Direction.REVERSE);
 
     }
+
+    public void run() {
+        motor.setPower(transferPwer);
+    }
+    public void intake(){
+        motor.setPower(intakePwer);
+    }
+
+    public void stop() {
+        motor.setPower(0);
+    }
+    public void backup(){
+        motor.setPower(back);
+    }
+
+
+    @Override
+    public void loop(Gamepad gamepad) {
+        if (gamepad.dpad_up) {
+            run();
+        } else{
+            stop();
+        }
+    }
+
+}
