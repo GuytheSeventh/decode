@@ -38,16 +38,14 @@ public class intakeTest extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive() && !isStopRequested()) {
-            telemetry.addData("Ball: ", transfer.hasBall());
+            //telemetry.addData("Ball: ", transfer.hasBall());
             telemetry.update();
             if (GamepadStatic.isButtonPressed(gamepad1, Controls.INTAKE)) {
                 intake.intake();
-                if(transfer.hasBall()) {
-                    transfer.stop();
-                }
-                else{
+               // }
+               // else{
                     transfer.intake();
-                }
+             //   }
             }
             else if (GamepadStatic.isButtonPressed(gamepad1, Controls.OUTTAKE)) {
                 intake.setOut(intake.getOut() + .1);

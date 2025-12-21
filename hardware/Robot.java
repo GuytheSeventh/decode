@@ -39,12 +39,6 @@ public class Robot extends Mechanism {
     @Override
     public void telemetry(Telemetry telemetry) {
         scoring.telemetry(telemetry);
-        Shooter shooter = scoring.getShooter();
-        double currentTicksPerSecond = shooter.getVelocity();
-        double currentRpm = currentTicksPerSecond * 60.0 / 2786;
-        telemetry.addData("Shooter RPM", currentRpm);
-        telemetry.addData("Ideal Close RPM", shooter.closeShootRPM);
-        telemetry.addData("Ideal Far RPM", shooter.farShootRPM);
 
         telemetry.addData("loop time (ms)", elapsedTime.milliseconds());
         elapsedTime.reset();

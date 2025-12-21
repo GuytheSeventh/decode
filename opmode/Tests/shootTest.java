@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.opmode.Tests;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -10,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.hardware.Intake;
 import org.firstinspires.ftc.teamcode.hardware.Shooter;
 import org.firstinspires.ftc.teamcode.hardware.Transfer;
 
@@ -23,37 +25,26 @@ public class shootTest extends LinearOpMode {
     public static double pwr = .8;
     private Shooter shoot;
     private Transfer transfer;
+    private Intake intake;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+        intake = new Intake(this);
         shoot = new Shooter(this);
         transfer = new Transfer(this);
+        intake.init(hardwareMap);
         transfer.init(hardwareMap);
         shoot.init(hardwareMap);
-
-        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
         waitForStart();
+            shoot.shoot();
+            intake.intake();
+            transfer.run();
 
-        while (!isStopRequested()) {
-            drive.setWeightedDrivePower(
-                    new Pose2d(
-                            -gamepad1.left_stick_y/2,
-                            -gamepad1.left_stick_x/2,
-                            -gamepad1.right_stick_x/2
-                    )
-            );
-
-            drive.update();
-            //shoot.shoot();
-            //transfer.run(pwr);
-
-            Pose2d poseEstimate = drive.getPoseEstimate();
-            telemetry.addData("x", poseEstimate.getX());
-            telemetry.addData("y", poseEstimate.getY());
-            telemetry.addData("heading", poseEstimate.getHeading());
+            telemetry.addData("Shoot rpm: ", shoot.getRpm());
+            telemetry.addData("Close rpm: ", Shooter.closeShootRPM);
+            telemetry.addData("Far rpm: ", Shooter.farShootRPM);
             telemetry.update();
         }
     }
-}

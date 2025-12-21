@@ -24,18 +24,18 @@ public class Transfer extends Mechanism {
         private DcMotorEx motor;// = DcMotorEx;
 
         private VoltageSensor voltage;
-        private DigitalChannel distance;
+        //private DigitalChannel distance;
 
         public static double transferPwer = 1;
         public static double back = -transferPwer;
-        public static double intakePwer = .38;
+        public static double intakePwer = .5;
         public static double dist = 10;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
         @Override
         public void init(HardwareMap hwMap) {
-            distance = hwMap.get(DigitalChannel.class, "distance"); //ic2bus 3
+            //distance = hwMap.get(DigitalChannel.class, "distance"); //ic2bus 3
            // voltage = hwMap.voltageSensor.iterator().next();
             motor = hwMap.get(DcMotorEx.class, "transfer");
            // servo = hwMap.get(Servo.class, "transferServo");
@@ -48,7 +48,7 @@ public class Transfer extends Mechanism {
             motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
             motor.setDirection(DcMotorEx.Direction.REVERSE);
-            distance.setMode(DigitalChannel.Mode.INPUT);
+           // distance.setMode(DigitalChannel.Mode.INPUT);
 
         }
 
@@ -66,9 +66,9 @@ public class Transfer extends Mechanism {
             motor.setPower(back);
         }
 
-        public boolean hasBall(){
-            return distance.getState();
-        }
+       // public boolean hasBall(){
+      //      return distance.getState();
+       // }
 
 
         @Override

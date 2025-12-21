@@ -151,6 +151,7 @@ public class Scoring extends Mechanism {
         }
         drivetrain.update();
         headingOffset = drivetrain.getPoseEstimate().getHeading();
+        shooter.shoot();
     }
 
     // ------------------ TELEMETRY ------------------
@@ -170,8 +171,10 @@ public class Scoring extends Mechanism {
         telemetry.addData("RR Pose Y (in)", pose.getY());
         telemetry.addData("RR Pose H (deg)", Math.toDegrees(pose.getHeading()));
 
-        double currentTicksPerSecond = shooter.getVelocity();
-        double currentRpm = currentTicksPerSecond * 60.0 / 2786;
+        double rpm1 = shooter.motors[0].getVelocity();
+        double rpm2 = shooter.motors[1].getVelocity();
+        double rpm = Math.max(rpm1,rpm2);
+        double currentRpm = rpm * 60.0 / 2786;
         telemetry.addData("Shooter RPM", currentRpm);
         telemetry.addData("Ideal Close RPM", Shooter.closeShootRPM);
         telemetry.addData("Ideal Far RPM", Shooter.farShootRPM);
@@ -223,11 +226,12 @@ public class Scoring extends Mechanism {
         limelight.update(headingDeg);
 
         // OPTIONAL: if you want to fuse vision pose into RR, uncomment:
-
-        Pose2d visionPose = limelight.getGlobalPose();
-        if (visionPose != null) {
-            Pose2d rr = drivetrain.getPoseEstimate();
-            drivetrain.setPoseEstimate(new Pose2d(visionPose.getX(), visionPose.getY(), rr.getHeading()));
+        if (mode != Mode.DRIVER) {
+            Pose2d visionPose = limelight.getGlobalPose();
+            if (visionPose != null) {
+                Pose2d rr = drivetrain.getPoseEstimate();
+                drivetrain.setPoseEstimate(new Pose2d(visionPose.getX(), visionPose.getY(), rr.getHeading()));
+            }
         }
 
 
@@ -241,9 +245,11 @@ public class Scoring extends Mechanism {
         // Run control logic based on current mode
         switch (mode) {
             case DRIVER:
+                limelight.stop();
                 manualDrive(gamepad);
                 break;
            case GO_TO_FAR_TIP:
+               limelight.start();
                if (Math.abs(gamepad.left_stick_x) > 0.05 ||
                        Math.abs(gamepad.left_stick_y) > 0.05 ||
                        Math.abs(gamepad.right_stick_x) > 0.05) {
@@ -254,6 +260,7 @@ public class Scoring extends Mechanism {
                }
                break;
             case GO_TO_CLOSE_TIP:
+                limelight.start();
                 if (Math.abs(gamepad.left_stick_x) > 0.05 ||
                         Math.abs(gamepad.left_stick_y) > 0.05 ||
                         Math.abs(gamepad.right_stick_x) > 0.05) {
@@ -264,6 +271,7 @@ public class Scoring extends Mechanism {
                 }
                 break;
             case AUTO_ALIGN:
+                limelight.start();
                 if (Math.abs(gamepad.left_stick_x) > 0.05 ||
                         Math.abs(gamepad.left_stick_y) > 0.05 ||
                         Math.abs(gamepad.right_stick_x) > 0.05) {
