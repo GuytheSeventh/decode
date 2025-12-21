@@ -9,10 +9,12 @@ import com.stuyfission.fissionlib.util.Mechanism;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.util.GoBildaPinpointDriver;
 
 public class Drivetrain extends Mechanism {
 
     private SampleMecanumDrive rrDrive;
+    public GoBildaPinpointDriver odo;
 
     public Drivetrain(LinearOpMode opMode) {
         this.opMode = opMode;
@@ -22,6 +24,7 @@ public class Drivetrain extends Mechanism {
     public void init(HardwareMap hwMap) {
         rrDrive = new SampleMecanumDrive(hwMap);
         rrDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        this.odo = rrDrive.odo ;
     }
 
     // ---------- POSE ----------
@@ -44,6 +47,9 @@ public class Drivetrain extends Mechanism {
 
     /** Directly set drive power (x = fwd, y = strafe, heading = turn). */
     public void setDrivePower(Pose2d drivePower) {
+        rrDrive.setWeightedDrivePower(drivePower);
+    }
+    public void setWeightedDrivePower(Pose2d drivePower) {
         rrDrive.setWeightedDrivePower(drivePower);
     }
 
@@ -71,4 +77,20 @@ public class Drivetrain extends Mechanism {
         telemetry.addData("Drive Y", pose.getY());
         telemetry.addData("Drive H", pose.getHeading());
     }
+
+
+
+
+
+    public void setMotorPowers(double fL, double bL, double bR, double fR){
+        rrDrive.setMotorPowers(fL,bL,bR,fR);
+    }
+    public double getHeading(){
+        return rrDrive.getHeading();
+    }
+    public void resetIMU(){
+        rrDrive.resetIMU();
+    }
+
+
 }

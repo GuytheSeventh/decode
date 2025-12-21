@@ -28,7 +28,7 @@ public class Transfer extends Mechanism {
 
         public static double transferPwer = 1;
         public static double back = -transferPwer;
-        public static double intakePwer = .5;
+        public static double intakePwer = .38;
         public static double dist = 10;
 
         public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
@@ -67,7 +67,7 @@ public class Transfer extends Mechanism {
         }
 
         public boolean hasBall(){
-            return !distance.getState();
+            return distance.getState();
         }
 
 

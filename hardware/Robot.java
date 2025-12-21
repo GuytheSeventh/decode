@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.stuyfission.fissionlib.input.GamepadStatic;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import com.stuyfission.fissionlib.util.Mechanism;
@@ -38,8 +39,16 @@ public class Robot extends Mechanism {
     @Override
     public void telemetry(Telemetry telemetry) {
         scoring.telemetry(telemetry);
+        Shooter shooter = scoring.getShooter();
+        double currentTicksPerSecond = shooter.getVelocity();
+        double currentRpm = currentTicksPerSecond * 60.0 / 2786;
+        telemetry.addData("Shooter RPM", currentRpm);
+        telemetry.addData("Ideal Close RPM", shooter.closeShootRPM);
+        telemetry.addData("Ideal Far RPM", shooter.farShootRPM);
+
         telemetry.addData("loop time (ms)", elapsedTime.milliseconds());
         elapsedTime.reset();
+        telemetry.update();
         // NOTE: no telemetry.update() here; OpMode does it
     }
 

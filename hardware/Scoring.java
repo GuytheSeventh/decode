@@ -27,7 +27,7 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private final FieldCentricDrivetrain drivetrain;
+    private final Drivetrain drivetrain;
     private final Limelight limelight;
     private final Intake intake;
     private final Transfer transfer;
@@ -86,7 +86,7 @@ public class Scoring extends Mechanism {
     public static double CLOSE_KP_TRANSLATION = 0.03;    // drive power per inch of error
     public static double CLOSE_KP_ROTATION = 0.04;
     private boolean Red;
-    private int id;
+    private int id = 20;
     private boolean shoot = true;
     private double headingOffset;
 
@@ -94,11 +94,14 @@ public class Scoring extends Mechanism {
     public Scoring(LinearOpMode opMode) {
         this.opMode = opMode;
 
-        drivetrain = new FieldCentricDrivetrain(opMode);
+        drivetrain = new Drivetrain(opMode);
         limelight = new Limelight(opMode);
         intake = new Intake(opMode);
         transfer = new Transfer(opMode);
         shooter = new Shooter(opMode);
+    }
+    public Shooter getShooter(){
+        return this.shooter;
     }
     public Scoring(LinearOpMode opMode, boolean Red) {
         this.opMode = opMode;
@@ -109,7 +112,7 @@ public class Scoring extends Mechanism {
         else{
             id = 20;
         }
-        drivetrain = new FieldCentricDrivetrain(opMode);
+        drivetrain = new Drivetrain(opMode);
         limelight = new Limelight(opMode);
         intake = new Intake(opMode);
         transfer = new Transfer(opMode);
@@ -132,6 +135,7 @@ public class Scoring extends Mechanism {
         intake.init(hwMap);
         transfer.init(hwMap);
         shooter.init(hwMap);
+        this.Red = Red;
         if (Red){
             drivetrain.setPoseEstimate(new Pose2d(24,-72,0));
 
@@ -139,8 +143,14 @@ public class Scoring extends Mechanism {
         else{
             drivetrain.setPoseEstimate(new Pose2d(-24,-72,0));
         }
+        if (Red){
+            id = 24;
+        }
+        else{
+            id = 20;
+        }
         drivetrain.update();
-        headingOffset = drivetrain.getHeading();
+        headingOffset = drivetrain.getPoseEstimate().getHeading();
     }
 
     // ------------------ TELEMETRY ------------------
@@ -160,13 +170,11 @@ public class Scoring extends Mechanism {
         telemetry.addData("RR Pose Y (in)", pose.getY());
         telemetry.addData("RR Pose H (deg)", Math.toDegrees(pose.getHeading()));
 
-        double currentTicksPerSecond = shooter.motors[0].getVelocity();
+        double currentTicksPerSecond = shooter.getVelocity();
         double currentRpm = currentTicksPerSecond * 60.0 / 2786;
         telemetry.addData("Shooter RPM", currentRpm);
         telemetry.addData("Ideal Close RPM", Shooter.closeShootRPM);
         telemetry.addData("Ideal Far RPM", Shooter.farShootRPM);
-
-
 
     }
 
@@ -206,9 +214,7 @@ public class Scoring extends Mechanism {
     // ------------------ MAIN LOOP ------------------
     @Override
     public void loop(Gamepad gamepad) {
-        // Update odometry & trajectory follower
         drivetrain.update();
-
         // Use RR heading (radians) as orientation prior for MegaTag2
         Pose2d rrPose = drivetrain.getPoseEstimate();
         double headingDeg = Math.toDegrees(rrPose.getHeading());
@@ -220,7 +226,8 @@ public class Scoring extends Mechanism {
 
         Pose2d visionPose = limelight.getGlobalPose();
         if (visionPose != null) {
-            drivetrain.setPoseEstimate(visionPose);
+            Pose2d rr = drivetrain.getPoseEstimate();
+            drivetrain.setPoseEstimate(new Pose2d(visionPose.getX(), visionPose.getY(), rr.getHeading()));
         }
 
 
@@ -237,28 +244,47 @@ public class Scoring extends Mechanism {
                 manualDrive(gamepad);
                 break;
            case GO_TO_FAR_TIP:
-                manualDrive(gamepad);
-                goToFarTipStep();
-                //choose one; if any stick is used,
-                //return to driver
-                break;
+               if (Math.abs(gamepad.left_stick_x) > 0.05 ||
+                       Math.abs(gamepad.left_stick_y) > 0.05 ||
+                       Math.abs(gamepad.right_stick_x) > 0.05) {
+                   mode = Mode.DRIVER;
+                   manualDrive(gamepad);
+               } else {
+                   goToFarTipStep();
+               }
+               break;
             case GO_TO_CLOSE_TIP:
-                manualDrive(gamepad);
-                goToCloseTipStep();
+                if (Math.abs(gamepad.left_stick_x) > 0.05 ||
+                        Math.abs(gamepad.left_stick_y) > 0.05 ||
+                        Math.abs(gamepad.right_stick_x) > 0.05) {
+                    mode = Mode.DRIVER;
+                    manualDrive(gamepad);
+                } else {
+                    goToCloseTipStep();
+                }
                 break;
             case AUTO_ALIGN:
-                manualDrive(gamepad);
-                autoAlignStep();
+                if (Math.abs(gamepad.left_stick_x) > 0.05 ||
+                        Math.abs(gamepad.left_stick_y) > 0.05 ||
+                        Math.abs(gamepad.right_stick_x) > 0.05) {
+                    mode = Mode.DRIVER;
+                    manualDrive(gamepad);
+                } else {
+                    autoAlignStep();
+                }
                 break;
         }
     }
     // ------------------ INPUT HANDLING ------------------
     private void handleButtons(Gamepad gamepad) {
-        if (GamepadStatic.isButtonPressed(gamepad, Controls.ALIGN)) {
+        if (GamepadStatic.isButtonPressed(gamepad, Controls.GOTOP)) {
             mode = Mode.GO_TO_CLOSE_TIP;
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.GOBOTTOM)){
             mode = Mode.GO_TO_FAR_TIP;
+        }
+        else if(GamepadStatic.isButtonPressed(gamepad,Controls.ALIGN)){
+            mode = Mode.AUTO_ALIGN;
         }
         else{
             mode = Mode.DRIVER;
@@ -266,6 +292,8 @@ public class Scoring extends Mechanism {
 
         if (GamepadStatic.isButtonPressed(gamepad,Controls.RESETHEADING)){
             drivetrain.resetIMU();
+            drivetrain.update();
+            headingOffset = drivetrain.getPoseEstimate().getHeading();
         }
 
         if (GamepadStatic.isButtonPressed(gamepad, Controls.FARSHOOT)){
@@ -300,9 +328,7 @@ public class Scoring extends Mechanism {
         // OUTTAKE: left bumper
         if (GamepadStatic.isButtonPressed(gamepad, Controls.INTAKE)) {
             intake.intake();
-            if(transfer.hasBall()) {
-                transfer.intake();
-            }
+            transfer.intake();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
             intake.setOut(intake.getOut() + .1);
@@ -333,29 +359,14 @@ public class Scoring extends Mechanism {
     // ------------------ DRIVING ------------------
 
     private void manualDrive(Gamepad gamepad) {
-        double heading = drivetrain.getHeading() - headingOffset; // radians :contentReference[oaicite:8]{index=8}
+        drivetrain.update();
+        drivetrain.setWeightedDrivePower(
+                new Pose2d(
+                        -gamepad.left_stick_y,
+                        -gamepad.left_stick_x * 1.1,
+                        gamepad.right_stick_x ));
 
-
-        // --- 2) Read sticks as FIELD commands ---
-        // Convention: left stick up = field “north” (forward)
-        double y = -gamepad.left_stick_y; // forward
-        double x =  gamepad.left_stick_x; // strafe right
-        double rx = -gamepad.right_stick_x; // turn
-
-        // --- 3) Rotate field vector into robot frame ---
-        double rotX = x * Math.cos(-heading) - y * Math.sin(-heading);
-        double rotY = x * Math.sin(-heading) + y * Math.cos(-heading);
-
-        // --- 4) Standard mecanum mixing ---
-        double denom = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
-
-        double flP = (rotY + rotX + rx) / denom;
-        double blP = (rotY - rotX + rx) / denom;
-        double frP = (rotY - rotX - rx) / denom;
-        double brP = (rotY + rotX - rx) / denom;
-
-        drivetrain.setMotorPowers(flP, blP, frP, brP);
-
+        drivetrain.update();
 
     }
     /**
@@ -460,9 +471,7 @@ public class Scoring extends Mechanism {
         }
 
         // Compute drive commands from Limelight helper (distance-aware gains)
-        Limelight.DriveCommands cmds = limelight.computeDriveCommands(
-                DESIRED_FWD_METERS, FORWARD_GAIN, STRAFE_GAIN, TURN_GAIN
-        );
+
         // Check alignment tolerances
         double fwdError = loc.y - DESIRED_FWD_METERS;
 
@@ -470,10 +479,17 @@ public class Scoring extends Mechanism {
                 Math.abs(loc.x)      < X_TOLERANCE &&
                         Math.abs(fwdError)   < Y_TOLERANCE &&
                         Math.abs(loc.yaw)    < YAW_TOLERANCE_DEG;
-
+        Limelight.DriveCommands cmds = limelight.computeDriveCommands(
+                DESIRED_FWD_METERS, FORWARD_GAIN, STRAFE_GAIN, TURN_GAIN
+        );
         if (aligned) {
             // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
-            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
+
+            drivetrain.setDrivePower(new Pose2d(
+                    clamp(cmds.forward, -MAX_AUTO_SPEED, MAX_AUTO_SPEED),
+                    clamp(cmds.strafe,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED),
+                    clamp(cmds.turn,    -MAX_AUTO_TURN_SPEED, MAX_AUTO_TURN_SPEED)
+            ));
             transfer.run();
         }
     }

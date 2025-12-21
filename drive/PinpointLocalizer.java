@@ -45,8 +45,7 @@ public class PinpointLocalizer implements Localizer {
     @Override
     public void update() {
         odo.update();
-        Telemetry t = FtcDashboard.getInstance().getTelemetry();
-        t.addData("status", odo.getDeviceStatus());
-        t.update();
+        FtcDashboard.getInstance().getTelemetry().addData("status", odo.getDeviceStatus());
+
     }
 }

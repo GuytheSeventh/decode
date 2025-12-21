@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.util.GoBildaPinpointDriver;
 public class FieldCentricDrivetrain extends Mechanism {
 
     SampleMecanumDrive rrDrive;
-    GoBildaPinpointDriver odo;
+    public GoBildaPinpointDriver odo;
 
     public FieldCentricDrivetrain(LinearOpMode opMode) { this.opMode = opMode; }
 
@@ -49,6 +49,7 @@ public class FieldCentricDrivetrain extends Mechanism {
     public void init(HardwareMap hwMap) {
         rrDrive = new SampleMecanumDrive(hwMap);
         rrDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        this.odo = rrDrive.odo;
 
     }
 

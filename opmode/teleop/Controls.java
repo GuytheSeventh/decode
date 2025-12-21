@@ -6,7 +6,8 @@ public class Controls {
     public static final Input UNSHOOT = Input.B;
     public static final Input OUTTAKE = Input.RIGHT_BUMPER;
     public static final Input GOBOTTOM = Input.Y;
-    public static final Input ALIGN = Input.X;
+    public static final Input GOTOP = Input.X;
+    public static final Input ALIGN = Input.DPAD_RIGHT;
     public static final Input INTAKE = Input.RIGHT_TRIGGER; // CROSS
     public static final Input STOP = Input.A; // CROSS
     public static final Input TRANSFER = Input.DPAD_UP; // square

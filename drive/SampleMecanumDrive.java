@@ -86,7 +86,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     private List<Integer> lastEncPositions = new ArrayList<>();
     private List<Integer> lastEncVels = new ArrayList<>();
 
-    private GoBildaPinpointDriver odo;
+    public GoBildaPinpointDriver odo;
 
     public SampleMecanumDrive(HardwareMap hardwareMap) {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
@@ -220,6 +220,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     public void update() {
+        odo.update();
         updatePoseEstimate();
         getLocalizer().update();
 

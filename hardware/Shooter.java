@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.util.Mechanism;
 import org.firstinspires.ftc.teamcode.util.PIDFController;
@@ -20,18 +21,18 @@ public class Shooter extends Mechanism {
 
     //private VoltageSensor voltage;
 
-    public static double TICKS_PER_REV = 28;
+    public static double TICKS_PER_REV = -1;
     public static double farShootRPM = 6000;
     public static double closeShootRPM = 5000;
-    public static double farPwr = .9;
-    public static double closePwr = .8;
+    public static double farPwr = 1;
+    public static double closePwr = 1;
     public static double passiveRPM = 500;
     public static double passPwr = .15;
     public static double rpmTolerance = 200;
-    public static double kP = 2.0;
+    public static double kP = 4.0;
     public static double kI = 0.0;
     public static double kD = 0.5;
-    public static double kF = 0;//0.00008;
+    public static double kF = 0.00008;
     private boolean far = true;
     private double ticksPerSecond;
 
@@ -49,40 +50,40 @@ public class Shooter extends Mechanism {
         motors[0].setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         motors[1].setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
-        motors[0].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        motors[0].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motors[1].setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
         motors[0].setDirection(DcMotorEx.Direction.REVERSE);
-        pidf.setFeedForward(PIDFController.FeedForward.LINEAR);
-       // TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
-        TICKS_PER_REV = 28;
+        PIDFCoefficients pidf = new PIDFCoefficients(kP,kI,kD,kF);
+        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,pidf);
+        motors[1].setPIDFCoefficients(DcMotor.RunMode.RUN_WITHOUT_ENCODER,pidf);
+        TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
 
 
     }
 
     public void shoot() {
-        pidf.setPIDF(kP, kI, kD, kF);
+        PIDFCoefficients pidf = new PIDFCoefficients(kP,kI,kD,kF);
+        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,pidf);
+        motors[1].setPIDFCoefficients(DcMotor.RunMode.RUN_WITHOUT_ENCODER,pidf);
         if (far) {
             ticksPerSecond = farShootRPM * TICKS_PER_REV / 60.0;
-            double currentTicks = motors[0].getVelocity();
-            double output = pidf.calculate(currentTicks, ticksPerSecond);
-            output = Math.max(-1, Math.min(1, output));
-            motors[1].setPower(output);
-            motors[0].setPower(output);
+            motors[0].setVelocity(ticksPerSecond);
+            motors[1].setPower(1);
         }
         else{
             ticksPerSecond = closeShootRPM * TICKS_PER_REV / 60.0;
-            double currentTicks = motors[0].getVelocity();
-            double output = pidf.calculate(currentTicks, ticksPerSecond);
-            output = Math.max(-1, Math.min(1, output));
-            motors[1].setPower(output);
-            motors[0].setPower(output);
+            motors[0].setVelocity(ticksPerSecond);
+            motors[1].setPower(1);
         }
     }
     public void unshoot(){
         motors[0].setPower(-closePwr);
         //motors[1].setVelocity(-ticksPerSecond);
         motors[1].setPower(-closePwr);
+    }
+    public double getVelocity(){
+        return motors[0].getVelocity();
     }
 
     public void passivePower() {
