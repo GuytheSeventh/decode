@@ -174,7 +174,7 @@ public class Scoring extends Mechanism {
         double rpm1 = shooter.motors[0].getVelocity();
         double rpm2 = shooter.motors[1].getVelocity();
         double rpm = Math.max(rpm1,rpm2);
-        double currentRpm = rpm * 60.0 / 2786;
+        double currentRpm = rpm * 60.0 / shooter.motors[0].getMotorType().getTicksPerRev();
         telemetry.addData("Shooter RPM", currentRpm);
         telemetry.addData("Ideal Close RPM", Shooter.closeShootRPM);
         telemetry.addData("Ideal Far RPM", Shooter.farShootRPM);
@@ -417,7 +417,8 @@ public class Scoring extends Mechanism {
 
         forwardCmd = clamp(forwardCmd, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
         strafeCmd  = clamp(strafeCmd,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-        turnCmd    = clamp(turnCmd,    -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        turnCmd = clamp(turnCmd, -MAX_AUTO_TURN_SPEED, MAX_AUTO_TURN_SPEED);
+
 
         drivetrain.setDrivePower(new Pose2d(forwardCmd, strafeCmd, turnCmd));
     }
@@ -457,7 +458,8 @@ public class Scoring extends Mechanism {
 
         forwardCmd = clamp(forwardCmd, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
         strafeCmd  = clamp(strafeCmd,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-        turnCmd    = clamp(turnCmd,    -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+        turnCmd = clamp(turnCmd, -MAX_AUTO_TURN_SPEED, MAX_AUTO_TURN_SPEED);
+
 
         drivetrain.setDrivePower(new Pose2d(forwardCmd, strafeCmd, turnCmd));
     }
@@ -467,39 +469,41 @@ public class Scoring extends Mechanism {
      * Runs after we’re already at the far tip pose.
      */
     private void autoAlignStep() {
-        Limelight.Location loc = limelight.getBest();
+            Limelight.Location loc = limelight.getBest();
 
-        // If no tag seen, slowly spin in place to search
-        if (loc.tagID < 0 || loc.tagID != id) {
-            drivetrain.setDrivePower(new Pose2d(0, 0, Red ? -MAX_AUTO_TURN_SPEED : MAX_AUTO_TURN_SPEED));
-            return;
-        }
-        else{
-            drivetrain.setDrivePower(new Pose2d(0, 0, 0));
-        }
+            // If no tag or wrong tag ID: spin to search
+            if (loc.tagID < 0 || loc.tagID != id) {
+                drivetrain.setDrivePower(new Pose2d(0, 0,
+                        Red ? -MAX_AUTO_TURN_SPEED : MAX_AUTO_TURN_SPEED));
+                return;
+            }
 
-        // Compute drive commands from Limelight helper (distance-aware gains)
+            double fwdError = loc.y - DESIRED_FWD_METERS;
 
-        // Check alignment tolerances
-        double fwdError = loc.y - DESIRED_FWD_METERS;
+            boolean aligned =
+                    Math.abs(loc.x)    < X_TOLERANCE &&
+                            Math.abs(fwdError) < Y_TOLERANCE &&
+                            Math.abs(loc.yaw)  < YAW_TOLERANCE_DEG;
 
-        boolean aligned =
-                Math.abs(loc.x)      < X_TOLERANCE &&
-                        Math.abs(fwdError)   < Y_TOLERANCE &&
-                        Math.abs(loc.yaw)    < YAW_TOLERANCE_DEG;
-        Limelight.DriveCommands cmds = limelight.computeDriveCommands(
-                DESIRED_FWD_METERS, FORWARD_GAIN, STRAFE_GAIN, TURN_GAIN
-        );
-        if (aligned) {
-            // Stop and begin shooting sequence (or just drop back to DRIVER if you don't want auto-shoot yet)
+            // Compute desired robot-centric drive commands from Limelight
+            Limelight.DriveCommands cmds = limelight.computeDriveCommands(
+                    DESIRED_FWD_METERS, FORWARD_GAIN, STRAFE_GAIN, TURN_GAIN
+            );
 
-            drivetrain.setDrivePower(new Pose2d(
-                    clamp(cmds.forward, -MAX_AUTO_SPEED, MAX_AUTO_SPEED),
-                    clamp(cmds.strafe,  -MAX_AUTO_SPEED, MAX_AUTO_SPEED),
-                    clamp(cmds.turn,    -MAX_AUTO_TURN_SPEED, MAX_AUTO_TURN_SPEED)
-            ));
-            transfer.run();
-        }
+            if (!aligned) {
+                // Still aligning → drive toward target
+                drivetrain.setDrivePower(new Pose2d(
+                        clamp(cmds.forward, -MAX_AUTO_SPEED,       MAX_AUTO_SPEED),
+                        clamp(cmds.strafe,  -MAX_AUTO_SPEED,       MAX_AUTO_SPEED),
+                        clamp(cmds.turn,    -MAX_AUTO_TURN_SPEED,  MAX_AUTO_TURN_SPEED)
+                ));
+            } else {
+                // Aligned → stop driving and run transfer/shoot
+                drivetrain.setDrivePower(new Pose2d(0, 0, 0));
+                transfer.run();   // or start your shooting state
+            }
+
+
     }
 
 

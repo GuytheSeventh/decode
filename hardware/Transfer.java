@@ -28,7 +28,7 @@ public class Transfer extends Mechanism {
 
     public static double transferPwer = .9;
     public static double back = -transferPwer;
-    public static double intakePwer = .7;
+    public static double intakePwer = .5;
 
     public Transfer(LinearOpMode opMode) { this.opMode = opMode; }
 
