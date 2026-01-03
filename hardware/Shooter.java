@@ -29,12 +29,12 @@ public class Shooter extends Mechanism {
     public static double rpmTolerance = 200;    // RPM
 
     // Velocity PIDF for encoder motor (motors[0])
-    public static double kP = 4.0;
+    public static double kP = 2.0;
     public static double kI = 0.0;
     public static double kD = 0.0;
-    public static double kF = 12.0; // starting point, see below
+    public static double kF = 0.0; // starting point, see below
 
-    private boolean far = true;
+    private boolean far = false;
 
     public Shooter(LinearOpMode opMode) {
         this.opMode = opMode;

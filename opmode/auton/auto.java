@@ -35,48 +35,37 @@ public class auto extends LinearOpMode {
     private Pose2d drivePos = null;
     private Location loc = null;
     private TrajectorySequence preloadTraj;
-    private TrajectorySequence back2wallTraj;
-    private TrajectorySequence farSampleIntTraj;
-    private TrajectorySequence basket2Traj;
-    private TrajectorySequence centerSampleTraj;
-    private TrajectorySequence centerSampleIntTraj;
-    private TrajectorySequence basket3Traj;
-    private TrajectorySequence wallSampleTraj;
-    private TrajectorySequence wallSampleIntTraj;
-    private TrajectorySequence basket4Traj;
-    private TrajectorySequence sub1Traj;
-    private TrajectorySequence basket5Traj;
-    private TrajectorySequence sub2Traj;
-    private TrajectorySequence basket6Traj;
-    private TrajectorySequence sub3Traj;
-    private TrajectorySequence basket7Traj;
-    private TrajectorySequence sub4Traj;
-    private TrajectorySequence basket8Traj;
-    private TrajectorySequence sub5Traj;
-    private TrajectorySequence basket9Traj;
+    private TrajectorySequence closeBallTraj;
+    private TrajectorySequence shoot1Traj;
+    private TrajectorySequence midBallTraj;
+    private TrajectorySequence shoot2Traj;
+    private TrajectorySequence farBallTraj;
+    private TrajectorySequence shoot3Traj;
+    private TrajectorySequence goHomeTraj;
 
     private SampleMecanumDrive drive;
 
     private Command preloadCommand = () -> drive.followTrajectorySequenceAsync(preloadTraj);
-    private Command back2wallCommand = () -> drive.followTrajectorySequenceAsync(back2wallTraj);
-    private Command farSampleIntCommand = () -> drive.followTrajectorySequenceAsync(farSampleIntTraj);
-    private Command basket2Command = () -> drive.followTrajectorySequenceAsync(basket2Traj);
-    private Command centerSampleCommand = () -> drive.followTrajectorySequenceAsync(centerSampleTraj);
-    private Command centerSampleIntCommand = () -> drive.followTrajectorySequenceAsync(centerSampleIntTraj);
-    private Command basket3Command = () -> drive.followTrajectorySequenceAsync(basket3Traj);
-    private Command wallSampleCommand = () -> drive.followTrajectorySequenceAsync(wallSampleTraj);
-    private Command wallSampleIntCommand = () -> drive.followTrajectorySequenceAsync(wallSampleIntTraj);
-    private Command basket4Command = () -> drive.followTrajectorySequenceAsync(basket4Traj);
-    private Command sub1Command = () -> drive.followTrajectorySequenceAsync(sub1Traj);
-    private Command basket5Command = () -> drive.followTrajectorySequenceAsync(basket5Traj);
-    private Command sub2Command = () -> drive.followTrajectorySequenceAsync(sub2Traj);
-    private Command basket6Command = () -> drive.followTrajectorySequenceAsync(basket6Traj);
-    private Command sub3Command = () -> drive.followTrajectorySequenceAsync(sub3Traj);
-    private Command basket7Command = () -> drive.followTrajectorySequenceAsync(basket7Traj);
-    private Command sub4Command = () -> drive.followTrajectorySequenceAsync(sub4Traj);
-    private Command basket8Command = () -> drive.followTrajectorySequenceAsync(basket8Traj);
-    private Command sub5Command = () -> drive.followTrajectorySequenceAsync(sub5Traj);
-    private Command basket9Command = () -> drive.followTrajectorySequenceAsync(basket9Traj);
+    private Command goHomeCommand = () -> drive.followTrajectorySequenceAsync(goHomeTraj);
+    private Command closeBallCommand = () -> drive.followTrajectorySequenceAsync(closeBallTraj);
+    private Command shoot1Command = () -> drive.followTrajectorySequenceAsync(shoot1Traj);
+    private Command midBallCommand = () -> drive.followTrajectorySequenceAsync(midBallTraj);
+    private Command shoot2Command = () -> drive.followTrajectorySequenceAsync(shoot2Traj);
+    private Command farBallCommand = () -> drive.followTrajectorySequenceAsync(farBallTraj);
+    private Command shoot3Command = () -> drive.followTrajectorySequenceAsync(shoot3Traj);
+
+    private Command forward = () -> drive.followTrajectoryAsync(
+            drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .forward(10)
+                    .build()
+    );
+
+    private Command backward = () -> drive.followTrajectoryAsync(
+            drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .back(10)
+                    .build()
+    );
+
 
     private Intake intake;
     private Shooter shooter;
@@ -89,9 +78,10 @@ public class auto extends LinearOpMode {
     private Command stopIntake = () -> intake.stop();
     private Command intakeCommand = () -> intake.intake();
     private Command transferUp = () -> transfer.run();
-    private Command transferDown = () -> transfer.backup();
+    private Command transferIntake = () -> transfer.intake();
     private Command transferStop = () -> transfer.stop();
     private Command shoot = () -> shooter.shoot();
+    private Command shootStop = () -> shooter.stop();
     private Command passive = () -> shooter.passivePower();
     private Command forwardP2P = () -> targetPoint = new Pose2d(targetPoint.getX(),
             targetPoint.getY(), targetPoint.getHeading());
@@ -101,14 +91,93 @@ public class auto extends LinearOpMode {
     };
     private CommandSequence preload = new CommandSequence()
             .addCommand(commandBusyTrue)
+            .addCommand(shoot)
             .addCommand(preloadCommand)
+            .addCommand(transferUp)
+            .addWaitCommand(1.5)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence closeBall = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(closeBallCommand)
+            .addCommand(intakeCommand)
+            .addCommand(transferIntake)
+            .addWaitCommand(.5)
+            .addCommand(forward)
+            .addWaitCommand(.1)
+            .addCommand(backward)
+            .addCommand(stopIntake)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence shoot1 = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(shoot1Command)
+            .addCommand(transferUp)
+            .addWaitCommand(1.5)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence midBall = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(midBallCommand)
+            .addCommand(intakeCommand)
+            .addCommand(transferIntake)
+            .addWaitCommand(.5)
+            .addCommand(forward)
+            .addWaitCommand(.1)
+            .addCommand(backward)
+            .addCommand(stopIntake)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence shoot2 = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(shoot2Command)
+            .addCommand(transferUp)
+            .addWaitCommand(1.5)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence farBall = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(farBallCommand)
+            .addCommand(intakeCommand)
+            .addCommand(transferIntake)
+            .addWaitCommand(.5)
+            .addCommand(forward)
+            .addWaitCommand(.1)
+            .addCommand(backward)
+            .addCommand(stopIntake)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence shoot3 = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(shoot3Command)
+            .addCommand(transferUp)
+            .addWaitCommand(1.5)
+            .addCommand(transferStop)
+            .addCommand(commandBusyFalse)
+            .build();
+    private CommandSequence goHome = new CommandSequence()
+            .addCommand(commandBusyTrue)
+            .addCommand(goHomeCommand)
             .addWaitCommand(1)
-            .addCommand(back2wallCommand)
+            .addCommand(shootStop)
             .addCommand(commandBusyFalse)
             .build();
     private CommandSequence doNothing = new CommandSequence().build();
     private AutoCommandMachine commandMachine = new AutoCommandMachine()
             .addCommandSequence(preload)
+            .addCommandSequence(closeBall)
+            .addCommandSequence(shoot1)
+            .addCommandSequence(midBall)
+            .addCommandSequence(shoot2)
+            .addCommandSequence(farBall)
+            .addCommandSequence(shoot3)
+            .addCommandSequence(goHome)
             .addCommandSequence(doNothing)
             .build();
     @Override
@@ -132,14 +201,57 @@ public class auto extends LinearOpMode {
 
         preloadTraj = drive
                 .trajectorySequenceBuilder(autoConstants.START.getPose())
-                .splineToLinearHeading(autoConstants.farTip.getPose(), 5 * Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
                 .build();
         telemetry.addLine("Built preloadTraj");
         telemetry.update();
-        back2wallTraj = drive
+
+        closeBallTraj = drive
                 .trajectorySequenceBuilder(preloadTraj.end())
+                .splineToLinearHeading(autoConstants.closeBall.getPose(), Math.PI / 2)
+                .build();
+        telemetry.addLine("Built closeBallTraj");
+        telemetry.update();
+
+        shoot1Traj = drive
+                .trajectorySequenceBuilder(closeBallTraj.end())
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .build();
+        telemetry.addLine("Built shoot1Traj");
+        telemetry.update();
+
+        midBallTraj = drive
+                .trajectorySequenceBuilder(shoot1Traj.end())
+                .splineToLinearHeading(autoConstants.midBall.getPose(), Math.PI / 2)
+                .build();
+        telemetry.addLine("Built midBallTraj");
+        telemetry.update();
+
+        shoot2Traj = drive
+                .trajectorySequenceBuilder(midBallTraj.end())
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .build();
+        telemetry.addLine("Built shoot2Traj");
+        telemetry.update();
+
+        farBallTraj = drive
+                .trajectorySequenceBuilder(shoot2Traj.end())
+                .splineToLinearHeading(autoConstants.farBall.getPose(), Math.PI / 2)
+                .build();
+        telemetry.addLine("Built farBallTraj");
+        telemetry.update();
+
+        shoot3Traj = drive
+                .trajectorySequenceBuilder(farBallTraj.end())
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .build();
+        telemetry.addLine("Built shoot1Traj");
+        telemetry.update();
+
+        goHomeTraj = drive
+                .trajectorySequenceBuilder(shoot3Traj.end())
                 .setReversed(false)
-                .splineToLinearHeading(autoConstants.back2wall.getPose(), Math.PI / 2)
+                .splineToLinearHeading(autoConstants.back2wall.getPose(), 0)
                 .build();
         telemetry.addLine("Built back2wallTraj");
         telemetry.update();

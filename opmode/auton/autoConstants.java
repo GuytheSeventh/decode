@@ -6,34 +6,34 @@ import static org.firstinspires.ftc.teamcode.opmode.auton.GameConstants.*;
 import org.firstinspires.ftc.teamcode.opmode.auton.Constant;
 
 import com.acmerobotics.dashboard.config.Config;
-
+// Red Constants
 @Config
 public class autoConstants {
     public static Constant START = new Constant(
-            -TILE_LENGTH * 2 + BOT_WIDTH / 2,
-            -WALL_POS + BOT_LENGTH / 2,
-            UP);
+    24,-72,0);
     public static Constant farTip = new Constant(
-            72,
-            24,
-            60);
-    public static Constant back2wall = new Constant(
-            -TILE_LENGTH * 2 + BOT_WIDTH / 2,
-            -WALL_POS + BOT_LENGTH / 2,
-            UP);
-    public static Constant BASKET_3 = new Constant(
-            -55.5,
-            -56.5,
-            43);
-    public static Constant BASKET_4 = new Constant(
-            -57,
-            -56,
-            33.5);
-    public static Constant BASKET_5 = new Constant(
-            -49.5,
-            -56.50,
-            39);
-    public static Constant BASKET_6 = new Constant(
+            0,
+            -60,
+            -30);
+    public static Constant closeTip = new Constant(
+            0,
+            0,
+            -45);
+
+    public static Constant back2wall = START;
+    public static Constant closeBall = new Constant(
+            -35,
+            -33.5,
+            90);
+    public static Constant midBall = new Constant(
+            -35,
+            -9.5,
+            90);
+    public static Constant farBall = new Constant(
+            -35,
+            -14.5,
+            90);
+    public static Constant moveABit = new Constant(
             -51,
             -57,
             40);

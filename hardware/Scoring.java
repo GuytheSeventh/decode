@@ -339,7 +339,7 @@ public class Scoring extends Mechanism {
             transfer.intake();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.OUTTAKE)) {
-            intake.setOut(intake.getOut() + .1);
+            //intake.setOut(intake.getOut() + .1);
             intake.outtake();
             transfer.backup();
         }
