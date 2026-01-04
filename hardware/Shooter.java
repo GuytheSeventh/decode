@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.util.PIDController;
 public class Shooter extends Mechanism {
     public final DcMotorEx[] motors = new DcMotorEx[2];
 
-    public static double TICKS_PER_REV;
+    public static double TICKS_PER_REV = 28;
 
     public static double farShootRPM   = 5500;
     public static double closeShootRPM = 5000;
@@ -29,10 +29,10 @@ public class Shooter extends Mechanism {
     public static double rpmTolerance = 200;    // RPM
 
     // Velocity PIDF for encoder motor (motors[0])
-    public static double kP = 2.0;
+    public static double kP = 10;
     public static double kI = 0.0;
     public static double kD = 0.0;
-    public static double kF = 0.0; // starting point, see below
+    public static double kF = 13.2; // starting point, see below
 
     private boolean far = false;
 
@@ -57,8 +57,9 @@ public class Shooter extends Mechanism {
         motors[0].setDirection(DcMotor.Direction.REVERSE);
         motors[1].setDirection(DcMotor.Direction.FORWARD); // default
 
-        TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
-        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        //TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
+        PIDFCoefficients coefficients = new PIDFCoefficients(kP,kI,kD,kF);
+        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
     }
 
     private double rpmToTicksPerSecond(double rpm) {
@@ -66,7 +67,8 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
-        motors[0].setVelocityPIDFCoefficients(kP, kI, kD, kF);
+        PIDFCoefficients coefficients = new PIDFCoefficients(kP,kI,kD,kF);
+        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
         double targetRpm = far ? farShootRPM : closeShootRPM;
         double tps = rpmToTicksPerSecond(targetRpm);
 

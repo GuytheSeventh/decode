@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.command.AutoCommandMachine;
 import com.stuyfission.fissionlib.command.Command;
 import com.stuyfission.fissionlib.command.CommandSequence;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
@@ -91,7 +92,6 @@ public class auto extends LinearOpMode {
     };
     private CommandSequence preload = new CommandSequence()
             .addCommand(commandBusyTrue)
-            .addCommand(shoot)
             .addCommand(preloadCommand)
             .addCommand(transferUp)
             .addWaitCommand(1.5)
@@ -104,9 +104,9 @@ public class auto extends LinearOpMode {
             .addCommand(intakeCommand)
             .addCommand(transferIntake)
             .addWaitCommand(.5)
-            .addCommand(forward)
-            .addWaitCommand(.1)
-            .addCommand(backward)
+            //.addCommand(forward)
+           // .addWaitCommand(.1)
+           // .addCommand(backward)
             .addCommand(stopIntake)
             .addCommand(transferStop)
             .addCommand(commandBusyFalse)
@@ -125,9 +125,9 @@ public class auto extends LinearOpMode {
             .addCommand(intakeCommand)
             .addCommand(transferIntake)
             .addWaitCommand(.5)
-            .addCommand(forward)
-            .addWaitCommand(.1)
-            .addCommand(backward)
+            //.addCommand(forward)
+            // .addWaitCommand(.1)
+            // .addCommand(backward)
             .addCommand(stopIntake)
             .addCommand(transferStop)
             .addCommand(commandBusyFalse)
@@ -146,9 +146,9 @@ public class auto extends LinearOpMode {
             .addCommand(intakeCommand)
             .addCommand(transferIntake)
             .addWaitCommand(.5)
-            .addCommand(forward)
-            .addWaitCommand(.1)
-            .addCommand(backward)
+            //.addCommand(forward)
+            // .addWaitCommand(.1)
+            // .addCommand(backward)
             .addCommand(stopIntake)
             .addCommand(transferStop)
             .addCommand(commandBusyFalse)
@@ -171,13 +171,13 @@ public class auto extends LinearOpMode {
     private CommandSequence doNothing = new CommandSequence().build();
     private AutoCommandMachine commandMachine = new AutoCommandMachine()
             .addCommandSequence(preload)
-            .addCommandSequence(closeBall)
-            .addCommandSequence(shoot1)
-            .addCommandSequence(midBall)
-            .addCommandSequence(shoot2)
-            .addCommandSequence(farBall)
-            .addCommandSequence(shoot3)
-            .addCommandSequence(goHome)
+            //.addCommandSequence(closeBall)
+            //.addCommandSequence(shoot1)
+            //.addCommandSequence(midBall)
+            //.addCommandSequence(shoot2)
+            //.addCommandSequence(farBall)
+            //.addCommandSequence(shoot3)
+            //.addCommandSequence(goHome)
             .addCommandSequence(doNothing)
             .build();
     @Override
@@ -201,7 +201,7 @@ public class auto extends LinearOpMode {
 
         preloadTraj = drive
                 .trajectorySequenceBuilder(autoConstants.START.getPose())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
                 .build();
         telemetry.addLine("Built preloadTraj");
         telemetry.update();
@@ -215,7 +215,7 @@ public class auto extends LinearOpMode {
 
         shoot1Traj = drive
                 .trajectorySequenceBuilder(closeBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
                 .build();
         telemetry.addLine("Built shoot1Traj");
         telemetry.update();
@@ -229,7 +229,7 @@ public class auto extends LinearOpMode {
 
         shoot2Traj = drive
                 .trajectorySequenceBuilder(midBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
                 .build();
         telemetry.addLine("Built shoot2Traj");
         telemetry.update();
@@ -243,7 +243,7 @@ public class auto extends LinearOpMode {
 
         shoot3Traj = drive
                 .trajectorySequenceBuilder(farBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), 5 * Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
                 .build();
         telemetry.addLine("Built shoot1Traj");
         telemetry.update();
@@ -251,27 +251,27 @@ public class auto extends LinearOpMode {
         goHomeTraj = drive
                 .trajectorySequenceBuilder(shoot3Traj.end())
                 .setReversed(false)
-                .splineToLinearHeading(autoConstants.back2wall.getPose(), 0)
+                .splineToLinearHeading(autoConstants.START.getPose(), 0)
                 .build();
-        telemetry.addLine("Built back2wallTraj");
+        telemetry.addLine("Built goHomeTraj");
         telemetry.update();
 
         while (opModeInInit() && !isStopRequested()) {
+            shooter.shoot();
             drive.updatePoseEstimate();
-            telemetry.addData("drive x", drive.getPoseEstimate().getX());
-            telemetry.addData("drive y", drive.getPoseEstimate().getY());
-            telemetry.addData("voltage", voltage.getVoltage());
+            Pose2d p = drive.getPoseEstimate();
+            telemetry.addData("x", p.getX());
+            telemetry.addData("y", p.getY());
+            telemetry.addData("heading", Math.toDegrees(p.getHeading()));
             telemetry.update();
         }
 
         drive.setPoseEstimate(autoConstants.START.getPose());
 
+
         waitForStart();
 
         while (opModeIsActive() && !isStopRequested() && !commandMachine.hasCompleted()) {
-            if (targetPoint != null) {
-                Drive.p2p(drive, targetPoint, voltage.getVoltage());
-            }
             drive.update();
             limelight.update();
             commandMachine.run(drive.isBusy() || commandBusy);
