@@ -10,10 +10,10 @@ import com.acmerobotics.dashboard.config.Config;
 @Config
 public class autoConstants {
     public static Constant START = new Constant(
-    -24,-72,0);
+    -72,-24,0);
     public static Constant farTip = new Constant(
-            0,
             -60,
+            0,
             -30);
     public static Constant closeTip = new Constant(
             0,
@@ -22,16 +22,16 @@ public class autoConstants {
 
     public static Constant back2wall = START;
     public static Constant closeBall = new Constant(
-            -35,
             -33.5,
+            -35,
             90);
     public static Constant midBall = new Constant(
-            -35,
             -9.5,
+            -35,
             90);
     public static Constant farBall = new Constant(
-            -35,
             14.5,
+            -355,
             90);
     public static Constant moveABit = new Constant(
             -51,

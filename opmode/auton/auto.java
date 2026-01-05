@@ -266,10 +266,9 @@ public class auto extends LinearOpMode {
             telemetry.update();
         }
 
-        drive.setPoseEstimate(autoConstants.START.getPose());
-
 
         waitForStart();
+        drive.setPoseEstimate(autoConstants.START.getPose());
 
         while (opModeIsActive() && !isStopRequested() && !commandMachine.hasCompleted()) {
             drive.update();

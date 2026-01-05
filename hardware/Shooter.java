@@ -9,18 +9,22 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.util.Mechanism;
-import org.firstinspires.ftc.teamcode.util.PIDController;
+import org.firstinspires.ftc.teamcode.util.PIDFController;
 //maybe use external PID and calculate power
 
 @Config
 public class Shooter extends Mechanism {
     public final DcMotorEx[] motors = new DcMotorEx[2];
+    VoltageSensor batteryVoltageSensor =
+            opMode.hardwareMap.voltageSensor.iterator().next();
+
+
 
     public static double TICKS_PER_REV = 28;
 
-    public static double farShootRPM   = 5500;
-    public static double closeShootRPM = 5000;
-    public static double farPwr        = 0.8;   // follower power
+    public static double farShootRPM   = 5000;
+    public static double closeShootRPM = 4500;
+    public static double farPwr        = 0.9;   // follower power
     public static double closePwr      = 0.8;
 
     public static double passiveRPM = 500;
@@ -29,10 +33,12 @@ public class Shooter extends Mechanism {
     public static double rpmTolerance = 200;    // RPM
 
     // Velocity PIDF for encoder motor (motors[0])
-    public static double kP = 10;
+    public static double kP = 0.0005;
+
     public static double kI = 0.0;
     public static double kD = 0.0;
-    public static double kF = 13.2; // starting point, see below
+    public static double kF = 1.0/2800; // starting point, see below
+    private final PIDFController pid = new PIDFController(kP,kI,kD,kF);
 
     private boolean far = false;
 
@@ -57,9 +63,6 @@ public class Shooter extends Mechanism {
         motors[0].setDirection(DcMotor.Direction.REVERSE);
         motors[1].setDirection(DcMotor.Direction.FORWARD); // default
 
-        //TICKS_PER_REV = motors[0].getMotorType().getTicksPerRev();
-        PIDFCoefficients coefficients = new PIDFCoefficients(kP,kI,kD,kF);
-        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
     }
 
     private double rpmToTicksPerSecond(double rpm) {
@@ -67,14 +70,26 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
-        PIDFCoefficients coefficients = new PIDFCoefficients(kP,kI,kD,kF);
-        motors[0].setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, coefficients);
-        double targetRpm = far ? farShootRPM : closeShootRPM;
-        double tps = rpmToTicksPerSecond(targetRpm);
+        pid.setPIDF(kP, kI, kD, kF);
 
-        motors[0].setVelocity(tps);                   // closed-loop on encoder motor
-        motors[1].setPower(far ? farPwr : closePwr);  // follower open-loop
+        double targetRpm = far ? farShootRPM : closeShootRPM;
+        double targetTps = rpmToTicksPerSecond(targetRpm);
+
+        pid.setSetPoint(targetTps);
+
+        double currentTps = motors[0].getVelocity();
+        double output = pid.calculate(currentTps);
+
+        double voltage = batteryVoltageSensor.getVoltage();
+        output *= 12.0 / voltage;
+
+        output = Math.max(-1.0, Math.min(1.0, output));
+
+
+        motors[0].setPower(output);
+        motors[1].setPower(output);
     }
+
 
     public void unshoot() {
         double tps = rpmToTicksPerSecond(closeShootRPM);

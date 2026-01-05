@@ -21,6 +21,7 @@ package org.firstinspires.ftc.teamcode.util;/*   MIT License
  */
 import static com.qualcomm.robotcore.util.TypeConversion.byteArrayToInt;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchDevice;
@@ -86,6 +87,9 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
     @Override
     public String getDeviceName() {
         return "goBILDA® Pinpoint Odometry Computer";
+    }
+
+    public void setPoseEstimate(Pose2d pose2d) {
     }
 
 
@@ -251,18 +255,8 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
     /**
      * Call this once per loop to read new data from the Odometry Computer. Data will only update once this is called.
      */
-    public void update(){
-        byte[] bArr   = deviceClient.read(Register.BULK_READ.bVal, 40);
-        deviceStatus  = byteArrayToInt(Arrays.copyOfRange  (bArr, 0, 4),  ByteOrder.LITTLE_ENDIAN);
-        loopTime      = byteArrayToInt(Arrays.copyOfRange  (bArr, 4, 8),  ByteOrder.LITTLE_ENDIAN);
-        xEncoderValue = byteArrayToInt(Arrays.copyOfRange  (bArr, 8, 12), ByteOrder.LITTLE_ENDIAN);
-        yEncoderValue = byteArrayToInt(Arrays.copyOfRange  (bArr, 12,16), ByteOrder.LITTLE_ENDIAN);
-        xPosition     = byteArrayToFloat(Arrays.copyOfRange(bArr, 16,20), ByteOrder.LITTLE_ENDIAN);
-        yPosition     = byteArrayToFloat(Arrays.copyOfRange(bArr, 20,24), ByteOrder.LITTLE_ENDIAN);
-        hOrientation  = byteArrayToFloat(Arrays.copyOfRange(bArr, 24,28), ByteOrder.LITTLE_ENDIAN);
-        xVelocity     = byteArrayToFloat(Arrays.copyOfRange(bArr, 28,32), ByteOrder.LITTLE_ENDIAN);
-        yVelocity     = byteArrayToFloat(Arrays.copyOfRange(bArr, 32,36), ByteOrder.LITTLE_ENDIAN);
-        hVelocity     = byteArrayToFloat(Arrays.copyOfRange(bArr, 36,40), ByteOrder.LITTLE_ENDIAN);
+    public void update() {
+
     }
 
     /**
@@ -490,26 +484,29 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
     /**
      * @return a Pose2D containing the estimated position of the robot
      */
+    private static final double MM_TO_IN = 1.0 / 25.4;
+
     public Pose2D getPosition(){
-        return new Pose2D(DistanceUnit.MM,
-                xPosition,
-                yPosition,
+        return new Pose2D(
+                DistanceUnit.INCH,
+                xPosition * MM_TO_IN,
+                yPosition * MM_TO_IN,
                 AngleUnit.RADIANS,
-                hOrientation);
+                hOrientation
+        );
     }
 
-
-
-    /**
-     * @return a Pose2D containing the estimated velocity of the robot, velocity is unit per second
-     */
     public Pose2D getVelocity(){
-        return new Pose2D(DistanceUnit.MM,
-                xVelocity,
-                yVelocity,
+        return new Pose2D(
+                DistanceUnit.INCH,
+                xVelocity * MM_TO_IN,
+                yVelocity * MM_TO_IN,
                 AngleUnit.RADIANS,
-                hVelocity);
+                hVelocity
+        );
     }
+
+
 
 
 
