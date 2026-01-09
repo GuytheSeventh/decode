@@ -4,9 +4,11 @@ package org.firstinspires.ftc.teamcode.opmode.auton;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.stuyfission.fissionlib.command.AutoCommandMachine;
 import com.stuyfission.fissionlib.command.Command;
@@ -14,6 +16,7 @@ import com.stuyfission.fissionlib.command.CommandSequence;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
+import org.firstinspires.ftc.teamcode.drive.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.hardware.Intake;
 import org.firstinspires.ftc.teamcode.hardware.Limelight;
@@ -23,6 +26,7 @@ import org.firstinspires.ftc.teamcode.hardware.Transfer;
 import org.firstinspires.ftc.teamcode.hardware.Robot;
 import org.firstinspires.ftc.teamcode.opmode.auton.autoConstants;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
+import org.firstinspires.ftc.teamcode.util.GoBildaPinpointDriver;
 
 public class auto extends LinearOpMode {
 
@@ -60,6 +64,11 @@ public class auto extends LinearOpMode {
                     .forward(10)
                     .build()
     );
+    private Command rotate = () -> drive.followTrajectoryAsync(
+            drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .splineToConstantHeading(new Vector2d(0,0),0)
+                    .build()
+    );
 
     private Command backward = () -> drive.followTrajectoryAsync(
             drive.trajectoryBuilder(drive.getPoseEstimate())
@@ -93,30 +102,29 @@ public class auto extends LinearOpMode {
     private CommandSequence preload = new CommandSequence()
             .addCommand(commandBusyTrue)
             .addCommand(preloadCommand)
-            .addCommand(transferUp)
+            //.addCommand(transferUp)
             .addWaitCommand(1.5)
-            .addCommand(transferStop)
             .addCommand(commandBusyFalse)
             .build();
     private CommandSequence closeBall = new CommandSequence()
             .addCommand(commandBusyTrue)
             .addCommand(closeBallCommand)
-            .addCommand(intakeCommand)
-            .addCommand(transferIntake)
+           // .addCommand(intakeCommand)
+           // .addCommand(transferIntake)
             .addWaitCommand(.5)
             //.addCommand(forward)
            // .addWaitCommand(.1)
            // .addCommand(backward)
-            .addCommand(stopIntake)
-            .addCommand(transferStop)
+          //  .addCommand(stopIntake)
+           // .addCommand(transferStop)
             .addCommand(commandBusyFalse)
             .build();
     private CommandSequence shoot1 = new CommandSequence()
             .addCommand(commandBusyTrue)
             .addCommand(shoot1Command)
-            .addCommand(transferUp)
+            //.addCommand(transferUp)
             .addWaitCommand(1.5)
-            .addCommand(transferStop)
+            //.addCommand(transferStop)
             .addCommand(commandBusyFalse)
             .build();
     private CommandSequence midBall = new CommandSequence()
@@ -177,7 +185,7 @@ public class auto extends LinearOpMode {
             //.addCommandSequence(shoot2)
             //.addCommandSequence(farBall)
             //.addCommandSequence(shoot3)
-            //.addCommandSequence(goHome)
+            .addCommandSequence(goHome)
             .addCommandSequence(doNothing)
             .build();
     @Override
@@ -195,55 +203,58 @@ public class auto extends LinearOpMode {
         shooter.init(hardwareMap);
         limelight.init(hardwareMap, Red);
 
-        TrajectoryVelocityConstraint fastDT = SampleMecanumDrive.getVelocityConstraint(70, DriveConstants.MAX_ANG_VEL,
+
+
+
+        TrajectoryVelocityConstraint fastDT = SampleMecanumDrive.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL,
                 DriveConstants.TRACK_WIDTH);
-        TrajectoryAccelerationConstraint fastDTA = SampleMecanumDrive.getAccelerationConstraint(70);
+        TrajectoryAccelerationConstraint fastDTA = SampleMecanumDrive.getAccelerationConstraint(25);
 
         preloadTraj = drive
                 .trajectorySequenceBuilder(autoConstants.START.getPose())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), autoConstants.closeTip.getH())
                 .build();
         telemetry.addLine("Built preloadTraj");
         telemetry.update();
 
         closeBallTraj = drive
                 .trajectorySequenceBuilder(preloadTraj.end())
-                .splineToLinearHeading(autoConstants.closeBall.getPose(), Math.PI / 2)
+                .splineToLinearHeading(autoConstants.closeBall.getPose(), autoConstants.closeBall.getH())
                 .build();
         telemetry.addLine("Built closeBallTraj");
         telemetry.update();
 
         shoot1Traj = drive
                 .trajectorySequenceBuilder(closeBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), autoConstants.closeTip.getH())
                 .build();
         telemetry.addLine("Built shoot1Traj");
         telemetry.update();
 
         midBallTraj = drive
                 .trajectorySequenceBuilder(shoot1Traj.end())
-                .splineToLinearHeading(autoConstants.midBall.getPose(), Math.PI / 2)
+                .splineToLinearHeading(autoConstants.midBall.getPose(), autoConstants.midBall.getH())
                 .build();
         telemetry.addLine("Built midBallTraj");
         telemetry.update();
 
         shoot2Traj = drive
                 .trajectorySequenceBuilder(midBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), autoConstants.closeTip.getH())
                 .build();
         telemetry.addLine("Built shoot2Traj");
         telemetry.update();
 
         farBallTraj = drive
                 .trajectorySequenceBuilder(shoot2Traj.end())
-                .splineToLinearHeading(autoConstants.farBall.getPose(), Math.PI / 2)
+                .splineToLinearHeading(autoConstants.farBall.getPose(), autoConstants.farBall.getH())
                 .build();
         telemetry.addLine("Built farBallTraj");
         telemetry.update();
 
         shoot3Traj = drive
                 .trajectorySequenceBuilder(farBallTraj.end())
-                .splineToLinearHeading(autoConstants.closeTip.getPose(), -Math.PI / 4)
+                .splineToLinearHeading(autoConstants.closeTip.getPose(), autoConstants.closeTip.getH())
                 .build();
         telemetry.addLine("Built shoot1Traj");
         telemetry.update();
@@ -251,32 +262,35 @@ public class auto extends LinearOpMode {
         goHomeTraj = drive
                 .trajectorySequenceBuilder(shoot3Traj.end())
                 .setReversed(false)
-                .splineToLinearHeading(autoConstants.START.getPose(), 0)
+                .splineToLinearHeading(autoConstants.START.getPose(), autoConstants.START.getH())
                 .build();
         telemetry.addLine("Built goHomeTraj");
         telemetry.update();
 
         while (opModeInInit() && !isStopRequested()) {
-            shooter.shoot();
+            //drive.setPoseEstimate(autoConstants.START.getPose());
             drive.updatePoseEstimate();
             Pose2d p = drive.getPoseEstimate();
-            telemetry.addData("x", p.getX());
-            telemetry.addData("y", p.getY());
-            telemetry.addData("heading", Math.toDegrees(p.getHeading()));
+            telemetry.addData("target pose", targetPoint);
+            telemetry.addData("drive x", drive.getPoseEstimate().getX());
+            telemetry.addData("drive y", drive.getPoseEstimate().getY());
+            telemetry.addData("drive heading", drive.getPoseEstimate().getHeading());
             telemetry.update();
         }
 
-
-        waitForStart();
         drive.setPoseEstimate(autoConstants.START.getPose());
+        waitForStart();
+
 
         while (opModeIsActive() && !isStopRequested() && !commandMachine.hasCompleted()) {
+            //shooter.shoot();
             drive.update();
             limelight.update();
             commandMachine.run(drive.isBusy() || commandBusy);
             telemetry.addData("target pose", targetPoint);
             telemetry.addData("drive x", drive.getPoseEstimate().getX());
             telemetry.addData("drive y", drive.getPoseEstimate().getY());
+            telemetry.addData("drive heading", drive.getPoseEstimate().getHeading());
             telemetry.update();
         }
         limelight.stop();

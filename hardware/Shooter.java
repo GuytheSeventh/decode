@@ -15,8 +15,6 @@ import org.firstinspires.ftc.teamcode.util.PIDFController;
 @Config
 public class Shooter extends Mechanism {
     public final DcMotorEx[] motors = new DcMotorEx[2];
-    VoltageSensor batteryVoltageSensor =
-            opMode.hardwareMap.voltageSensor.iterator().next();
 
 
 
@@ -80,8 +78,6 @@ public class Shooter extends Mechanism {
         double currentTps = motors[0].getVelocity();
         double output = pid.calculate(currentTps);
 
-        double voltage = batteryVoltageSensor.getVoltage();
-        output *= 12.0 / voltage;
 
         output = Math.max(-1.0, Math.min(1.0, output));
 

@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode.drive;
 
 import androidx.annotation.NonNull;
@@ -62,8 +63,15 @@ import static java.lang.Thread.sleep;
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(.08, 0, 0);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(.3, 0, 0);
+    public static double TKP = .1;
+    public static double TKD = .02;
+    public static double TKI = 0;
+    public static double HKP = .1;
+    public static double HKD = .02;
+    public static double HKI = 0;
+
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(TKP, TKI, TKD);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(HKP, HKI, HKD);
 
     public static double LATERAL_MULTIPLIER = 1;
 
@@ -94,7 +102,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
-                new Pose2d(1, 1, Math.toRadians(10.0)));
+                new Pose2d(.5, .5, Math.toRadians(5)));
 
         LynxModuleUtil.ensureMinimumFirmwareVersion(hardwareMap);
 
@@ -106,18 +114,19 @@ public class SampleMecanumDrive extends MecanumDrive {
 
         // TODO: adjust the names of the following hardware devices to match your
         // configuration
-       // imu = hardwareMap.get(IMU.class, "imu");
+        // imu = hardwareMap.get(IMU.class, "imu");
         //IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
         //        DriveConstants.LOGO_FACING_DIR, DriveConstants.USB_FACING_DIR));
         //imu.initialize(parameters);
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(-114, -195);
+        odo.setOffsets(-96, -192);
         //odo.setOffsets(-0, -0);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
                 GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
+
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftRear = hardwareMap.get(DcMotorEx.class, "leftRear");
@@ -158,6 +167,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         trajectorySequenceRunner = new TrajectorySequenceRunner(
                 follower, HEADING_PID)/*, batteryVoltageSensor,
                 lastEncPositions, lastEncVels, lastTrackingEncPositions, lastTrackingEncVels)*/;
+
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
@@ -330,7 +340,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     public static TrajectoryVelocityConstraint getVelocityConstraint(double maxVel, double maxAngularVel,
-            double trackWidth) {
+                                                                     double trackWidth) {
         return new MinVelocityConstraint(Arrays.asList(
                 new AngularVelocityConstraint(maxAngularVel),
                 new MecanumVelocityConstraint(maxVel, trackWidth)));

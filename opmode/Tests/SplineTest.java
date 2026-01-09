@@ -28,18 +28,7 @@ public class SplineTest extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         drive.reset();
         drive.setPoseEstimate(new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.RADIANS,0));
-        while (opModeInInit() && !isStopRequested()) {
-            drive.update();
-            Pose2d p = drive.getPoseEstimate();
-            telemetry.addData("x", p.getX());
-            telemetry.addData("y", p.getY());
-            telemetry.addData("heading", Math.toDegrees(p.getHeading()));
-            telemetry.update();
-        }
         waitForStart();
-
-        if (isStopRequested()) return;
-        drive.setPoseEstimate(new Pose2d(0,0,0));
 
         TrajectorySequence traj =
         drive.trajectorySequenceBuilder(new Pose2d(0, 0, 0))
@@ -50,11 +39,6 @@ public class SplineTest extends LinearOpMode {
                 .build();
 
         drive.followTrajectorySequence(traj);
-        Pose2d p = drive.getPoseEstimate();
-        telemetry.addData("x", p.getX());
-        telemetry.addData("y", p.getY());
-        telemetry.addData("heading", Math.toDegrees(p.getHeading()));
-        telemetry.update();
 
     }
 }

@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode.drive;
 
 import androidx.annotation.NonNull;
@@ -13,53 +14,62 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.util.GoBildaPinpointDriver;
 
-public class PinpointLocalizer implements Localizer {
-    private GoBildaPinpointDriver odo;
 
-    public PinpointLocalizer(GoBildaPinpointDriver odo) {
-        this.odo = odo;
+/**
+ * Road Runner localizer wrapper for goBILDA Pinpoint.
+ * Converts Pinpoint's millimeter outputs into Road Runner's inch units.
+ */
+public class PinpointLocalizer implements Localizer {
+
+    private static final double MM_TO_IN = 1.0 / 25.4;
+
+    private final GoBildaPinpointDriver pinpoint;
+    private Pose2d poseEstimate = new Pose2d();
+    private Pose2d poseVelocity = new Pose2d();
+
+    public PinpointLocalizer(GoBildaPinpointDriver pinpoint) {
+        this.pinpoint = pinpoint;
     }
 
     @NonNull
     @Override
     public Pose2d getPoseEstimate() {
-        Pose2D p = odo.getPosition();
+        return poseEstimate;
+    }
 
-        return new Pose2d(
-                p.getX(DistanceUnit.INCH),
-                p.getY(DistanceUnit.INCH),
-                p.getHeading(AngleUnit.RADIANS)
-        );
+    @Override
+    public void setPoseEstimate(@NonNull Pose2d pose) {
+        poseEstimate = pose;
+
+        // Sync Pinpoint internal state to Road Runner
+        pinpoint.setPosition(new Pose2D(
+                DistanceUnit.INCH,
+                pose.getX(),
+                pose.getY(),
+                AngleUnit.RADIANS,
+                pose.getHeading()
+        ));
     }
 
     @Override
     public Pose2d getPoseVelocity() {
-        Pose2D v = odo.getVelocity();
-
-        return new Pose2d(
-                v.getX(DistanceUnit.INCH),
-                v.getY(DistanceUnit.INCH),
-                v.getHeading(AngleUnit.RADIANS)
-        );
+        return poseVelocity;
     }
-
-
-
-
-    @Override
-    public void setPoseEstimate(@NonNull Pose2d pose2d) {
-        odo.setPosition(new Pose2D(DistanceUnit.INCH, pose2d.getX(), pose2d.getY(), AngleUnit.RADIANS, pose2d.getHeading()));
-
-    }
-
-
-
-
 
     @Override
     public void update() {
-        odo.update();
-        FtcDashboard.getInstance().getTelemetry().addData("status", odo.getDeviceStatus());
+        pinpoint.update();
 
+        poseEstimate = new Pose2d(
+                pinpoint.getPosX() * MM_TO_IN,
+                pinpoint.getPosY() * MM_TO_IN,
+                pinpoint.getHeading()
+        );
+
+        poseVelocity = new Pose2d(
+                pinpoint.getVelX() * MM_TO_IN,
+                pinpoint.getVelY() * MM_TO_IN,
+                pinpoint.getHeadingVelocity()
+        );
     }
 }

@@ -38,7 +38,7 @@ public class Scoring extends Mechanism {
         DRIVER,        // normal tele-op driving
         GO_TO_FAR_TIP, // go to far tip
         AUTO_ALIGN,    // using Limelight to center on tag
-        GO_TO_CLOSE_TIP       // go to close tip
+        GO_TO_CLOSE_TIP
     }
 
     private Mode mode = Mode.DRIVER;

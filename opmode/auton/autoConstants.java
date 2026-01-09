@@ -10,7 +10,7 @@ import com.acmerobotics.dashboard.config.Config;
 @Config
 public class autoConstants {
     public static Constant START = new Constant(
-    -72,-24,0);
+    -72,24,0);
     public static Constant farTip = new Constant(
             -60,
             0,
@@ -31,7 +31,7 @@ public class autoConstants {
             90);
     public static Constant farBall = new Constant(
             14.5,
-            -355,
+            -35,
             90);
     public static Constant moveABit = new Constant(
             -51,
