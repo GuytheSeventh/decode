@@ -28,6 +28,7 @@ public class PinpointLocalizer implements Localizer {
     private Pose2d poseVelocity = new Pose2d();
 
     public PinpointLocalizer(GoBildaPinpointDriver pinpoint) {
+
         this.pinpoint = pinpoint;
     }
 

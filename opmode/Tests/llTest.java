@@ -33,7 +33,8 @@ public class llTest extends LinearOpMode {
         telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
         while (!isStopRequested() && !opModeIsActive()) {
-            shooter.shoot();
+            //shooter.shoot();
+            shooter.setFar(false);
             intake.telemetry(telemetry);
             transfer.telemetry(telemetry);
             shooter.telemetry(telemetry);

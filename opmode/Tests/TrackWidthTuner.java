@@ -27,8 +27,8 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 @Autonomous(group = "drive")
 public class TrackWidthTuner extends LinearOpMode {
     public static double ANGLE = 90; // deg
-    public static int NUM_TRIALS = 3;
-    public static int DELAY = 1000; // ms
+    public static int NUM_TRIALS = 5;
+    public static int DELAY = 2000; // ms
 
     @Override
     public void runOpMode() throws InterruptedException {

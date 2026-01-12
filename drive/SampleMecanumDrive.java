@@ -63,21 +63,23 @@ import static java.lang.Thread.sleep;
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
-    public static double TKP = .1;
-    public static double TKD = .02;
+    public static double TKP = .08;
+    public static double TKD = .05;
     public static double TKI = 0;
-    public static double HKP = .1;
-    public static double HKD = .02;
+    public static double HKP = .08;
+    public static double HKD = .03;
     public static double HKI = 0;
 
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(TKP, TKI, TKD);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(HKP, HKI, HKD);
 
-    public static double LATERAL_MULTIPLIER = 1;
+    public static double LATERAL_MULTIPLIER = 1.4;
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
     public static double OMEGA_WEIGHT = 1;
+    public static double xOffset = 96.1;
+    public static double yOffset = -192.81;
 
     private TrajectorySequenceRunner trajectorySequenceRunner;
 
@@ -120,11 +122,11 @@ public class SampleMecanumDrive extends MecanumDrive {
         //imu.initialize(parameters);
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(-96, -192);
+        odo.setOffsets(xOffset,yOffset);
         //odo.setOffsets(-0, -0);
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                GoBildaPinpointDriver.EncoderDirection.FORWARD);
+                GoBildaPinpointDriver.EncoderDirection.REVERSED);
         odo.resetPosAndIMU();
 
 
@@ -351,6 +353,6 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     public void setPoseEstimate(Pose2D pose2D) {
-        setPoseEstimate(pose2D);
+        odo.setPosition(pose2D);
     }
 }

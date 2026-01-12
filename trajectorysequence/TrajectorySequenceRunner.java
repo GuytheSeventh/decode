@@ -142,10 +142,10 @@ public class TrajectorySequenceRunner {
 
                 turnController.setTargetPosition(targetState.getX());
 
-                double correction = turnController.update(poseEstimate.getHeading());
+                double correction = -turnController.update(poseEstimate.getHeading());
 
-                double targetOmega = targetState.getV();
-                double targetAlpha = targetState.getA();
+                double targetOmega = -targetState.getV();
+                double targetAlpha = -targetState.getA();
 
                 lastPoseError = new Pose2d(0, 0, turnController.getLastError());
 

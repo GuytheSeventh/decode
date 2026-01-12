@@ -21,7 +21,7 @@ public class Shooter extends Mechanism {
     public static double TICKS_PER_REV = 28;
 
     public static double farShootRPM   = 5000;
-    public static double closeShootRPM = 4500;
+    public static double closeShootRPM = 4200;
     public static double farPwr        = 0.9;   // follower power
     public static double closePwr      = 0.8;
 
@@ -31,13 +31,12 @@ public class Shooter extends Mechanism {
     public static double rpmTolerance = 200;    // RPM
 
     // Velocity PIDF for encoder motor (motors[0])
-    public static double kP = 0.0005;
+    public static double kP = 0.0002;
 
     public static double kI = 0.0;
-    public static double kD = 0.0;
-    public static double kF = 1.0/2800; // starting point, see below
+    public static double kD = 0.005;
+    public static double kF = 0.00003; // starting point, see below
     private final PIDFController pid = new PIDFController(kP,kI,kD,kF);
-
     private boolean far = false;
 
     public Shooter(LinearOpMode opMode) {
@@ -60,6 +59,9 @@ public class Shooter extends Mechanism {
 
         motors[0].setDirection(DcMotor.Direction.REVERSE);
         motors[1].setDirection(DcMotor.Direction.FORWARD); // default
+        pid.setFeedForward(PIDFController.FeedForward.LINEAR);
+        pid.setRotationConstants(rpmToTicksPerSecond(5000),28);
+        pid.setPIDF(kP, kI, kD, kF);
 
     }
 
@@ -68,7 +70,6 @@ public class Shooter extends Mechanism {
     }
 
     public void shoot() {
-        pid.setPIDF(kP, kI, kD, kF);
 
         double targetRpm = far ? farShootRPM : closeShootRPM;
         double targetTps = rpmToTicksPerSecond(targetRpm);
