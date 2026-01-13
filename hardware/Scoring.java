@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -10,6 +11,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.stuyfission.fissionlib.input.GamepadStatic;
 import com.stuyfission.fissionlib.util.Mechanism;
+import com.stuyfission.fissionlib.command.AutoCommandMachine;
+import com.stuyfission.fissionlib.command.Command;
+import com.stuyfission.fissionlib.command.CommandSequence;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -27,11 +31,11 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.Controls;
 public class Scoring extends Mechanism {
 
     // ------------------ SUBSYSTEMS ------------------
-    private final Drivetrain drivetrain;
-    private final Limelight limelight;
-    private final Intake intake;
-    private final Transfer transfer;
-    private final Shooter shooter;
+    private Drivetrain drivetrain;
+    private Limelight limelight;
+    private Intake intake;
+    private Transfer transfer;
+    private Shooter shooter;
 
     // ------------------ MODES / STATE ------------------
     private enum Mode {
@@ -89,6 +93,15 @@ public class Scoring extends Mechanism {
     private int id = 20;
     private boolean shoot = true;
     private double headingOffset;
+    private Command transferCom = () -> transfer.run();
+    private Command transferStop = () -> transfer.stop();
+    private CommandSequence transSeq = new CommandSequence()
+            .addWaitCommand(.3)
+            .addCommand(transferCom)
+            .addWaitCommand(.3)
+            .addCommand(transferStop)
+            .build();
+
 
     // ------------------ CONSTRUCTOR ------------------
     public Scoring(LinearOpMode opMode) {
@@ -307,12 +320,12 @@ public class Scoring extends Mechanism {
         if (GamepadStatic.isButtonPressed(gamepad, Controls.FARSHOOT)){
             shooter.setFar(true);
             shoot = true;
-            transfer.run();
+            transSeq.trigger();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.CLOSESHOOT)){
             shooter.setFar(false);
             shoot = true;
-            transfer.run();
+            transSeq.trigger();
         }
         else if (GamepadStatic.isButtonPressed(gamepad, Controls.UNSHOOT)){
             shooter.unshoot();
@@ -370,7 +383,7 @@ public class Scoring extends Mechanism {
         drivetrain.update();
         drivetrain.setWeightedDrivePower(
                 new Pose2d(
-                        -gamepad.left_stick_y,
+                        gamepad.left_stick_y,
                         -gamepad.left_stick_x * 1.1,
                         gamepad.right_stick_x ));
 
