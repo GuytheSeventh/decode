@@ -20,8 +20,8 @@ public class Shooter extends Mechanism {
 
     public static double TICKS_PER_REV = 28;
 
-    public static double farShootRPM   = 5000;
-    public static double closeShootRPM = 4200;
+    public static double farShootRPM   = 1111;
+    public static double closeShootRPM = 1111;
     public static double farPwr        = 0.9;   // follower power
     public static double closePwr      = 0.8;
 
